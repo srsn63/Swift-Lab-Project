@@ -1,0 +1,20 @@
+[
+  {
+    "code": "PC-101",
+    "title": "Contraband Possession",
+    "description": "Possession of unauthorized items within the correctional facility.",
+    "severityLevel": 3
+  },
+  {
+    "code": "PC-205",
+    "title": "Assault on Inmate",
+    "description": "Physical harm inflicted upon another inmate.",
+    "severityLevel": 5
+  },
+  {
+    "code": "PC-310",
+    "title": "Disobedience to Staff",
+    "description": "Failure to comply with direct orders from correctional officers.",
+    "severityLevel": 2
+  }
+]
