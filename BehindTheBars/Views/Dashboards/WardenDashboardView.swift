@@ -7,6 +7,7 @@ struct WardenDashboardView: View {
                 NavigationLink("Inmates") { InmateListView() }
                 NavigationLink("Guards") { GuardListView() }
                 NavigationLink("Report Incident") { ReportIncidentView() }
+                NavigationLink("Incidents") { IncidentListView() }
             }
             .navigationTitle("Warden")
         }

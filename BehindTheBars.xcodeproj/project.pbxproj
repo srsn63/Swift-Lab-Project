@@ -13,12 +13,17 @@
 		224AAFCC2F58B0590029639E /* BlockManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFCB2F58B0590029639E /* BlockManagerView.swift */; };
 		224AAFCE2F58B0790029639E /* CellListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFCD2F58B0790029639E /* CellListView.swift */; };
 		224AAFD02F58B0A40029639E /* InmateAdmissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFCF2F58B0A40029639E /* InmateAdmissionView.swift */; };
-		224AAFD22F58B3C20029639E /* AdminDashboardView..swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD12F58B3C20029639E /* AdminDashboardView..swift */; };
+		224AAFD22F58B3C20029639E /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD12F58B3C20029639E /* AdminDashboardView.swift */; };
 		224AAFD42F58B3E10029639E /* AdminApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD32F58B3E10029639E /* AdminApprovalsView.swift */; };
 		224AAFD62F58B4050029639E /* AdminUserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD52F58B4050029639E /* AdminUserManagementView.swift */; };
 		224AAFD82F58CD0A0029639E /* IncidentFormState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD72F58CD0A0029639E /* IncidentFormState.swift */; };
 		224AAFDA2F58CD640029639E /* IncidentFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFD92F58CD640029639E /* IncidentFormView.swift */; };
 		224AAFDC2F58CE000029639E /* PenalCodeLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFDB2F58CE000029639E /* PenalCodeLoader.swift */; };
+		224AAFDE2F59803B0029639E /* IncidentListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFDD2F59803A0029639E /* IncidentListViewModel.swift */; };
+		224AAFE02F59807D0029639E /* IncidentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFDF2F59807D0029639E /* IncidentListView.swift */; };
+		224AAFE22F5981140029639E /* BlocksDirectoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFE12F5981140029639E /* BlocksDirectoryViewModel.swift */; };
+		224AAFE42F59F83D0029639E /* IncidentDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFE32F59F83D0029639E /* IncidentDetailViewModel.swift */; };
+		224AAFE62F59F8910029639E /* IncidentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFE52F59F8910029639E /* IncidentDetailView.swift */; };
 		2261578A2F56DC8A009E396E /* InmateCRUDViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226157892F56DC8A009E396E /* InmateCRUDViewModel.swift */; };
 		2261578C2F56DCF3009E396E /* InmateEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2261578B2F56DCF3009E396E /* InmateEditorView.swift */; };
 		2261578E2F56DD91009E396E /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2261578D2F56DD91009E396E /* ProfileViewModel.swift */; };
@@ -66,12 +71,17 @@
 		224AAFCB2F58B0590029639E /* BlockManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockManagerView.swift; sourceTree = "<group>"; };
 		224AAFCD2F58B0790029639E /* CellListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellListView.swift; sourceTree = "<group>"; };
 		224AAFCF2F58B0A40029639E /* InmateAdmissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InmateAdmissionView.swift; sourceTree = "<group>"; };
-		224AAFD12F58B3C20029639E /* AdminDashboardView..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView..swift; sourceTree = "<group>"; };
+		224AAFD12F58B3C20029639E /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
 		224AAFD32F58B3E10029639E /* AdminApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminApprovalsView.swift; sourceTree = "<group>"; };
 		224AAFD52F58B4050029639E /* AdminUserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminUserManagementView.swift; sourceTree = "<group>"; };
 		224AAFD72F58CD0A0029639E /* IncidentFormState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentFormState.swift; sourceTree = "<group>"; };
 		224AAFD92F58CD640029639E /* IncidentFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentFormView.swift; sourceTree = "<group>"; };
 		224AAFDB2F58CE000029639E /* PenalCodeLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PenalCodeLoader.swift; sourceTree = "<group>"; };
+		224AAFDD2F59803A0029639E /* IncidentListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentListViewModel.swift; sourceTree = "<group>"; };
+		224AAFDF2F59807D0029639E /* IncidentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentListView.swift; sourceTree = "<group>"; };
+		224AAFE12F5981140029639E /* BlocksDirectoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlocksDirectoryViewModel.swift; sourceTree = "<group>"; };
+		224AAFE32F59F83D0029639E /* IncidentDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentDetailViewModel.swift; sourceTree = "<group>"; };
+		224AAFE52F59F8910029639E /* IncidentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentDetailView.swift; sourceTree = "<group>"; };
 		226157892F56DC8A009E396E /* InmateCRUDViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InmateCRUDViewModel.swift; sourceTree = "<group>"; };
 		2261578B2F56DCF3009E396E /* InmateEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InmateEditorView.swift; sourceTree = "<group>"; };
 		2261578D2F56DD91009E396E /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
@@ -129,7 +139,7 @@
 			children = (
 				224AAFCB2F58B0590029639E /* BlockManagerView.swift */,
 				224AAFCD2F58B0790029639E /* CellListView.swift */,
-				224AAFD12F58B3C20029639E /* AdminDashboardView..swift */,
+				224AAFD12F58B3C20029639E /* AdminDashboardView.swift */,
 				224AAFD32F58B3E10029639E /* AdminApprovalsView.swift */,
 				224AAFD52F58B4050029639E /* AdminUserManagementView.swift */,
 			);
@@ -212,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				22DB99912F5503A600053214 /* AuthViewModel.swift */,
+				224AAFE32F59F83D0029639E /* IncidentDetailViewModel.swift */,
 				22F6B2A12F55A7C7007AC690 /* InmateDirectoryViewModel.swift */,
 				22F6B2AF2F55BEE3007AC690 /* IncidentReportViewModel.swift */,
 				22F6B2B52F55F8CE007AC690 /* InmateSelectionViewModel.swift */,
@@ -219,6 +230,7 @@
 				2261578D2F56DD91009E396E /* ProfileViewModel.swift */,
 				226157922F56DE01009E396E /* GuardManagementViewModel.swift */,
 				224AAFC82F58B0110029639E /* BlockAdminViewModel.swift */,
+				224AAFE12F5981140029639E /* BlocksDirectoryViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -275,6 +287,9 @@
 				22F6B2B12F55BF27007AC690 /* ReportIncidentView.swift */,
 				22F6B2B32F55BF5B007AC690 /* PenalCodeReferenceView.swift */,
 				224AAFD92F58CD640029639E /* IncidentFormView.swift */,
+				224AAFDD2F59803A0029639E /* IncidentListViewModel.swift */,
+				224AAFDF2F59807D0029639E /* IncidentListView.swift */,
+				224AAFE52F59F8910029639E /* IncidentDetailView.swift */,
 			);
 			path = Incidents;
 			sourceTree = "<group>";
@@ -391,6 +406,7 @@
 				22F6B2A22F55A7C7007AC690 /* InmateDirectoryViewModel.swift in Sources */,
 				22F6B2AE2F55BEA7007AC690 /* Incident.swift in Sources */,
 				22F6B2A62F55A973007AC690 /* InmateDetailView.swift in Sources */,
+				224AAFE42F59F83D0029639E /* IncidentDetailViewModel.swift in Sources */,
 				22DB99982F55071200053214 /* WardenDashboardView.swift in Sources */,
 				22F6B2BA2F5606FB007AC690 /* SignUpView.swift in Sources */,
 				22F6B2AA2F55BE1F007AC690 /* PenalCode.swift in Sources */,
@@ -408,6 +424,7 @@
 				22F6B2A42F55A848007AC690 /* InmateListView.swift in Sources */,
 				22DB999A2F55073600053214 /* GuardDashboardView.swift in Sources */,
 				224AAFC52F58AE780029639E /* Block.swift in Sources */,
+				224AAFE02F59807D0029639E /* IncidentListView.swift in Sources */,
 				224AAFD42F58B3E10029639E /* AdminApprovalsView.swift in Sources */,
 				2261578A2F56DC8A009E396E /* InmateCRUDViewModel.swift in Sources */,
 				224AAFDC2F58CE000029639E /* PenalCodeLoader.swift in Sources */,
@@ -415,6 +432,7 @@
 				22DB99962F5506D300053214 /* MainTabView.swift in Sources */,
 				22F6B2AC2F55BE6B007AC690 /* JSONParserService.swift in Sources */,
 				22DB99922F5503A600053214 /* AuthViewModel.swift in Sources */,
+				224AAFE22F5981140029639E /* BlocksDirectoryViewModel.swift in Sources */,
 				226157982F56DE83009E396E /* GuardEditorView.swift in Sources */,
 				22DB99902F55036800053214 /* FirebaseManager.swift in Sources */,
 				226157962F56DE53009E396E /* GuardListView.swift in Sources */,
@@ -425,10 +443,12 @@
 				22DB996A2F54EE2100053214 /* BehindTheBarsApp.swift in Sources */,
 				22F6B2B02F55BEE3007AC690 /* IncidentReportViewModel.swift in Sources */,
 				224AAFD02F58B0A40029639E /* InmateAdmissionView.swift in Sources */,
-				224AAFD22F58B3C20029639E /* AdminDashboardView..swift in Sources */,
+				224AAFD22F58B3C20029639E /* AdminDashboardView.swift in Sources */,
+				224AAFDE2F59803B0029639E /* IncidentListViewModel.swift in Sources */,
 				22F6B2B82F55F9C1007AC690 /* InmateSelectionView.swift in Sources */,
 				22DB998C2F55028900053214 /* User.swift in Sources */,
 				22F6B2B62F55F8CE007AC690 /* InmateSelectionViewModel.swift in Sources */,
+				224AAFE62F59F8910029639E /* IncidentDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

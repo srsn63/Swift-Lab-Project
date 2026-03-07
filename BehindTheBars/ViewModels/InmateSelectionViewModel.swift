@@ -2,32 +2,46 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-class InmateSelectionViewModel: ObservableObject {
-    
+@MainActor
+final class InmateSelectionViewModel: ObservableObject {
     @Published var inmates: [Inmate] = []
-    @Published var searchText = ""
-    
+    @Published var searchText: String = ""
+    @Published var errorMessage: String?
+
+    private let filterBlockId: String?
+    private var listener: ListenerRegistration?
+
+    init(filterBlockId: String?) {
+        self.filterBlockId = filterBlockId
+        start()
+    }
+
+    deinit { listener?.remove() }
+
     var filteredInmates: [Inmate] {
-        if searchText.isEmpty {
-            return inmates
-        } else {
-            return inmates.filter {
-                $0.fullName.lowercased().contains(searchText.lowercased())
-            }
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if q.isEmpty { return inmates }
+        return inmates.filter { $0.fullName.lowercased().contains(q) || $0.cellId.lowercased().contains(q) }
+    }
+
+    private func start() {
+        listener?.remove()
+
+        var query: Query = FirebaseManager.shared.inmatesRef
+        if let b = filterBlockId, !b.isEmpty {
+            query = query.whereField("blockId", isEqualTo: b)
         }
-    }
-    
-    init() {
-        fetchInmates()
-    }
-    
-    func fetchInmates() {
-        FirebaseManager.shared.inmatesRef.getDocuments { snapshot, error in
-            if let documents = snapshot?.documents {
-                self.inmates = documents.compactMap {
-                    try? $0.data(as: Inmate.self)
-                }
+
+        listener = query.addSnapshotListener { [weak self] snap, err in
+            guard let self else { return }
+            if let err {
+                self.inmates = []
+                self.errorMessage = err.localizedDescription
+                return
             }
+            let list = snap?.documents.compactMap { try? $0.data(as: Inmate.self) } ?? []
+            self.inmates = list.sorted { $0.fullName < $1.fullName }
+            self.errorMessage = nil
         }
     }
 }

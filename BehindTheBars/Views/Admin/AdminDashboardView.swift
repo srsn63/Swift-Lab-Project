@@ -15,6 +15,7 @@ struct AdminDashboardView: View {
                 NavigationLink("Manage Users") {
                     AdminUserManagementView()
                 }
+                NavigationLink("Incidents") { IncidentListView() }
             }
             .navigationTitle("Admin")
         }

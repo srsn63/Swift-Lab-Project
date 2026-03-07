@@ -1,20 +1,21 @@
 import SwiftUI
+import FirebaseFirestoreSwift
 
 struct GuardEditorView: View {
     let user: User
-    let onSave: (String, String, String) async throws -> Void
+    let onSave: (String, String, String) async throws -> Void // fullName, badgeNumber, assignedBlockId
 
     @Environment(\.dismiss) private var dismiss
+
     @State private var fullName: String = ""
     @State private var badgeNumber: String = ""
-    @State private var assignedBlock: String = ""
+    @State private var assignedBlockId: String = ""   // MUST be blocks/{blockId} document id
+
+    @State private var blocks: [Block] = []
     @State private var errorMessage: String?
 
-    @State private var showToast = false
-    @State private var toastText = ""
-
     var body: some View {
-        Form {
+        List {
             Section("Account") {
                 Text(user.email)
                 Text(user.role)
@@ -23,11 +24,24 @@ struct GuardEditorView: View {
             Section("Editable") {
                 TextField("Full name", text: $fullName)
                 TextField("Badge number", text: $badgeNumber)
-                TextField("Assigned block", text: $assignedBlock)
-            }
 
-            if let errorMessage {
-                Section { Text(errorMessage).foregroundColor(.red) }
+                Menu {
+                    Button("Unassigned") { assignedBlockId = "" }
+                    ForEach(blocks) { b in
+                        Button(b.name) { assignedBlockId = b.id ?? "" }
+                    }
+                } label: {
+                    HStack {
+                        Text("Assigned block")
+                        Spacer()
+                        Text(currentBlockName).foregroundStyle(.secondary)
+                        Image(systemName: "chevron.down").foregroundStyle(.secondary)
+                    }
+                }
+
+                if let err = errorMessage {
+                    Text(err).foregroundStyle(.red)
+                }
             }
         }
         .navigationTitle("Edit Guard")
@@ -36,26 +50,46 @@ struct GuardEditorView: View {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Save") {
-                    errorMessage = nil
-                    Task {
-                        do {
-                            try await onSave(fullName, badgeNumber, assignedBlock)
-                            toastText = "Guard updated"
-                            withAnimation { showToast = true }
-                            dismiss()
-                        } catch {
-                            errorMessage = error.localizedDescription
-                        }
-                    }
-                }
+                Button("Save") { save() }
             }
         }
         .onAppear {
             fullName = user.fullName ?? ""
             badgeNumber = user.badgeNumber ?? ""
-            assignedBlock = user.assignedBlockId ?? ""
+            assignedBlockId = user.assignedBlockId ?? ""
+            Task { await loadBlocks() }
         }
-        .toast(isPresented: $showToast, text: toastText)
+    }
+
+    private var currentBlockName: String {
+        if assignedBlockId.isEmpty { return "Unassigned" }
+        return blocks.first(where: { $0.id == assignedBlockId })?.name ?? "Unknown"
+    }
+
+    private func loadBlocks() async {
+        do {
+            let snap = try await FirebaseManager.shared.blocksRef.getDocuments()
+            var list = snap.documents.compactMap { try? $0.data(as: Block.self) }
+            list = list.filter { $0.id != nil }.sorted { $0.name < $1.name }
+            blocks = list
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func save() {
+        errorMessage = nil
+        Task {
+            do {
+                try await onSave(
+                    fullName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    badgeNumber.trimmingCharacters(in: .whitespacesAndNewlines),
+                    assignedBlockId
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 }

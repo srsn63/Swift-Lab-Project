@@ -4,94 +4,145 @@ import FirebaseFirestoreSwift
 
 @MainActor
 final class InmateCRUDViewModel: ObservableObject {
+
     @Published var inmates: [Inmate] = []
     @Published var errorMessage: String?
 
-    private let inmatesRef = FirebaseManager.shared.inmatesRef
     private var listener: ListenerRegistration?
 
     deinit { listener?.remove() }
 
+    // MARK: LISTENER
+
     func startListener() {
+        startListener(blockIdFilter: nil)
+    }
+
+    func startListener(blockIdFilter: String?) {
         listener?.remove()
-        listener = inmatesRef.addSnapshotListener { [weak self] snap, err in
+        errorMessage = nil
+
+        var query: Query = FirebaseManager.shared.inmatesRef
+
+        if let blockIdFilter, !blockIdFilter.isEmpty {
+            query = query.whereField("blockId", isEqualTo: blockIdFilter)
+        }
+
+        listener = query.addSnapshotListener { [weak self] snap, err in
             guard let self else { return }
-            if let err { self.errorMessage = err.localizedDescription; return }
-            self.inmates = snap?.documents.compactMap { try? $0.data(as: Inmate.self) } ?? []
-            self.inmates.sort { $0.admissionDate > $1.admissionDate }
+
+            if let err {
+                self.inmates = []
+                self.errorMessage = err.localizedDescription
+                return
+            }
+
+            let list = snap?.documents.compactMap { try? $0.data(as: Inmate.self) } ?? []
+            self.inmates = list.sorted { $0.fullName < $1.fullName }
         }
     }
+
+    // MARK: UPDATE
 
     func update(inmateId: String, inmate: Inmate) async throws {
-        try inmatesRef.document(inmateId).setData(from: inmate, merge: true)
+        try FirebaseManager.shared.inmatesRef
+            .document(inmateId)
+            .setData(from: inmate, merge: true)
     }
 
-    func createInmateWithCellIncrement(inmate: Inmate, blockId: String, cellId: String) async throws {
-        let db = FirebaseManager.shared.firestore
-        let cellRef = FirebaseManager.shared.cellsRef(blockId: blockId).document(cellId)
-        let inmateRef = inmatesRef.document()
+    // MARK: DELETE INMATE + DECREMENT CELL OCCUPANCY
+
+    func delete(inmateId: String) async throws {
+
+        let db = Firestore.firestore()
+        let inmateRef = FirebaseManager.shared.inmatesRef.document(inmateId)
 
         try await db.runTransaction { transaction, errorPointer in
+
             do {
+
+                let inmateSnap = try transaction.getDocument(inmateRef)
+                let inmate = try inmateSnap.data(as: Inmate.self)
+
+                let cellRef = FirebaseManager.shared
+                    .cellsRef(blockId: inmate.blockId)
+                    .document(inmate.cellId)
+
                 let cellSnap = try transaction.getDocument(cellRef)
-                guard var cell = try? cellSnap.data(as: Cell.self) else {
-                    throw NSError(domain: "cell", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cell not found"])
-                }
+                let cell = try cellSnap.data(as: Cell.self)
 
-                if cell.occupancy >= cell.capacity {
-                    throw NSError(domain: "cell", code: 2, userInfo: [NSLocalizedDescriptionKey: "Cell is full"])
-                }
+                let newOcc = max(0, cell.occupancy - 1)
 
-                cell.occupancy += 1
-                let cellData = try Firestore.Encoder().encode(cell)
-                transaction.setData(cellData, forDocument: cellRef, merge: true)
+                transaction.updateData(
+                    ["occupancy": newOcc],
+                    forDocument: cellRef
+                )
 
-                let inmateData = try Firestore.Encoder().encode(inmate)
-                transaction.setData(inmateData, forDocument: inmateRef, merge: false)
+                transaction.deleteDocument(inmateRef)
 
-                return nil
-            } catch let e as NSError {
-                errorPointer?.pointee = e
-                return nil
-            } catch {
-                let e = NSError(domain: "txn", code: 999, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                errorPointer?.pointee = e
+            } catch let error as NSError {
+                errorPointer?.pointee = error
                 return nil
             }
+
+            return nil
         }
     }
 
-    func deleteInmateAndDecrementCell(inmateId: String, blockId: String, cellId: String) async throws {
-        let db = FirebaseManager.shared.firestore
-        let cellRef = FirebaseManager.shared.cellsRef(blockId: blockId).document(cellId)
-        let inmateRef = inmatesRef.document(inmateId)
+    // MARK: CREATE INMATE + INCREMENT CELL OCCUPANCY
+
+    func createInmateWithCellIncrement(
+        inmate: Inmate,
+        blockId: String,
+        cellId: String
+    ) async throws {
+
+        let db = Firestore.firestore()
+
+        let inmateRef =
+            FirebaseManager.shared.inmatesRef.document()
+
+        let cellRef =
+            FirebaseManager.shared
+                .cellsRef(blockId: blockId)
+                .document(cellId)
 
         try await db.runTransaction { transaction, errorPointer in
+
             do {
-                let inmateSnap = try transaction.getDocument(inmateRef)
-                guard inmateSnap.exists else {
-                    throw NSError(domain: "inmate", code: 1, userInfo: [NSLocalizedDescriptionKey: "Inmate not found"])
-                }
 
                 let cellSnap = try transaction.getDocument(cellRef)
-                guard var cell = try? cellSnap.data(as: Cell.self) else {
-                    throw NSError(domain: "cell", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cell not found"])
+                let cell = try cellSnap.data(as: Cell.self)
+
+                if cell.occupancy >= cell.capacity {
+                    let err = NSError(
+                        domain: "CellFull",
+                        code: 1,
+                        userInfo: [
+                            NSLocalizedDescriptionKey: "Cell is full."
+                        ]
+                    )
+                    errorPointer?.pointee = err
+                    return nil
                 }
 
-                if cell.occupancy > 0 { cell.occupancy -= 1 }
-                let cellData = try Firestore.Encoder().encode(cell)
-                transaction.setData(cellData, forDocument: cellRef, merge: true)
+                transaction.updateData(
+                    ["occupancy": cell.occupancy + 1],
+                    forDocument: cellRef
+                )
 
-                transaction.deleteDocument(inmateRef)
-                return nil
-            } catch let e as NSError {
-                errorPointer?.pointee = e
-                return nil
-            } catch {
-                let e = NSError(domain: "txn", code: 999, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                errorPointer?.pointee = e
+                try transaction.setData(
+                    from: inmate,
+                    forDocument: inmateRef,
+                    merge: false
+                )
+
+            } catch let error as NSError {
+                errorPointer?.pointee = error
                 return nil
             }
+
+            return nil
         }
     }
 }

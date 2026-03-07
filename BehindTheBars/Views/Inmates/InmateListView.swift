@@ -8,12 +8,8 @@ struct InmateListView: View {
     @State private var showingAdd = false
     @State private var editingInmate: Inmate?
 
-    @State private var actionError: String?
-
-    private var canWriteInmates: Bool {
-        let role = authVM.currentUser?.role ?? ""
-        return role == "warden" || role == "admin"
-    }
+    private var isGuard: Bool { authVM.currentUser?.role == "guard" }
+    private var guardBlockId: String { authVM.currentUser?.assignedBlockId ?? "" }
 
     private var filtered: [Inmate] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -23,49 +19,55 @@ struct InmateListView: View {
 
     var body: some View {
         List {
-            if let err = vm.errorMessage { Text(err).foregroundStyle(.red) }
-            if let actionError { Text(actionError).foregroundStyle(.red) }
+            if let err = vm.errorMessage {
+                Text(err).foregroundStyle(.red)
+            }
 
             ForEach(filtered) { inmate in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(inmate.fullName).font(.headline)
-                    Text("Block: \(inmate.blockId) • Cell: \(inmate.cellId) • \(inmate.securityLevel)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    if canWriteInmates {
-                        HStack(spacing: 10) {
-                            Button { editingInmate = inmate } label: { Label("Edit", systemImage: "pencil") }
-                                .buttonStyle(.bordered)
-
-                            Button(role: .destructive) {
-                                Task {
-                                    do {
-                                        guard let id = inmate.id else { return }
-                                        try await vm.deleteInmateAndDecrementCell(inmateId: id, blockId: inmate.blockId, cellId: inmate.cellId)
-                                    } catch {
-                                        actionError = error.localizedDescription
-                                    }
-                                }
-                            } label: { Label("Delete", systemImage: "trash") }
-                                .buttonStyle(.bordered)
-                        }
-                        .padding(.top, 4)
+                NavigationLink {
+                    InmateDetailView(inmate: inmate)
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text(inmate.fullName)
+                        Text("Block: \(inmate.blockId) • Cell: \(inmate.cellId) • \(inmate.securityLevel)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.vertical, 6)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if !isGuard {
+                        Button(role: .destructive) {
+                            Task { try? await vm.delete(inmateId: inmate.id ?? "") }
+                        } label: { Text("Delete") }
+
+                        Button {
+                            editingInmate = inmate
+                        } label: { Text("Edit") }
+                    }
+                }
             }
         }
         .navigationTitle("Inmates")
         .searchable(text: $searchText)
         .toolbar {
-            if canWriteInmates {
+            if !isGuard {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingAdd = true } label: { Label("Add", systemImage: "plus") }
+                    Button { showingAdd = true } label: { Image(systemName: "plus") }
                 }
             }
         }
-        .onAppear { vm.startListener() }
+        .onAppear {
+            if isGuard {
+                if guardBlockId.isEmpty {
+                    vm.inmates = []
+                    vm.errorMessage = "You are not assigned to a block."
+                } else {
+                    vm.startListener(blockIdFilter: guardBlockId)
+                }
+            } else {
+                vm.startListener()
+            }
+        }
         .sheet(isPresented: $showingAdd) {
             NavigationStack {
                 InmateAdmissionView(onCreated: { })

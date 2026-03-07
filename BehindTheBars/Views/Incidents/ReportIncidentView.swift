@@ -1,14 +1,12 @@
 import SwiftUI
 
 struct ReportIncidentView: View {
-
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var vm = IncidentReportViewModel()
 
     @State private var form = IncidentFormState()
     @State private var showSelector = false
 
-    // Load from local JSON once; no dependency on JSONParserService singleton names
     private let penalCodes: [PenalCode] = PenalCodeLoader.load()
 
     var body: some View {
@@ -17,14 +15,33 @@ struct ReportIncidentView: View {
                 form: $form,
                 penalCodes: penalCodes,
                 onSubmit: submit,
-                onSelectInmates: { showSelector = true }
+                onSelectInmates: openSelector
             )
             .navigationTitle("Incident")
             .sheet(isPresented: $showSelector) {
-                InmateSelectionView(selectedInmates: $form.selectedInmates)
+                InmateSelectionView(
+                    selectedInmates: $form.selectedInmates,
+                    filterBlockId: guardBlockFilter
+                )
             }
             .overlay(statusOverlay, alignment: .bottom)
         }
+    }
+
+    private var guardBlockFilter: String? {
+        guard let u = authVM.currentUser else { return nil }
+        if u.role == "guard" { return u.assignedBlockId }
+        return nil
+    }
+
+    private func openSelector() {
+        if authVM.currentUser?.role == "guard" {
+            if (authVM.currentUser?.assignedBlockId ?? "").isEmpty {
+                vm.errorMessage = "You are not assigned to a block."
+                return
+            }
+        }
+        showSelector = true
     }
 
     @ViewBuilder

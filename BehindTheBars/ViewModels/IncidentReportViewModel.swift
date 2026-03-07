@@ -8,7 +8,6 @@ final class IncidentReportViewModel: ObservableObject {
     @Published var submissionSuccess = false
     @Published var errorMessage: String?
 
-    // Pass currentUser + selectedInmates so we can determine blockId correctly
     func submitIncident(
         currentUser: User,
         description: String,
@@ -17,44 +16,30 @@ final class IncidentReportViewModel: ObservableObject {
         penalCode: String
     ) async {
         let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
-        let code = penalCode.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !desc.isEmpty else {
-            errorMessage = "Description is required."
-            return
-        }
-        guard (1...5).contains(severity) else {
-            errorMessage = "Severity must be 1 to 5."
-            return
-        }
-        guard !selectedInmates.isEmpty else {
-            errorMessage = "Please select at least one inmate."
-            return
-        }
-        guard !code.isEmpty else {
-            errorMessage = "Penal code is required."
-            return
-        }
+        guard !desc.isEmpty else { errorMessage = "Description required."; return }
+        guard (1...5).contains(severity) else { errorMessage = "Severity must be 1..5."; return }
+        guard !selectedInmates.isEmpty else { errorMessage = "Select inmates."; return }
+        guard !penalCode.isEmpty else { errorMessage = "Select penal code."; return }
 
-        // Determine incident blockId
-        let blockId: String
+        // Determine incident block and enforce guard restrictions
+        let incidentBlockId: String
+
         if currentUser.role == "guard" {
             guard let assigned = currentUser.assignedBlockId, !assigned.isEmpty else {
-                errorMessage = "Guard is not assigned to a block."
+                errorMessage = "You are not assigned to a block."
                 return
             }
-            // Guards can only report for their own block; enforce client-side too
             let invalid = selectedInmates.contains { $0.blockId != assigned }
             if invalid {
-                errorMessage = "You can only report incidents for inmates in your assigned block."
+                errorMessage = "Guards can only use inmates from their assigned block."
                 return
             }
-            blockId = assigned
+            incidentBlockId = assigned
         } else {
-            // Warden/admin: derive from the first selected inmate
-            // (If you later support cross-block incidents, you must redesign schema/rules.)
-            blockId = selectedInmates[0].blockId
-            let mixed = selectedInmates.contains { $0.blockId != blockId }
+            // warden/admin: force single-block incident for now
+            incidentBlockId = selectedInmates[0].blockId
+            let mixed = selectedInmates.contains { $0.blockId != incidentBlockId }
             if mixed {
                 errorMessage = "All selected inmates must be from the same block."
                 return
@@ -70,12 +55,12 @@ final class IncidentReportViewModel: ObservableObject {
         let incident = Incident(
             id: nil,
             reportedBy: currentUser.uid,
-            blockId: blockId,
+            blockId: incidentBlockId,
             involvedInmates: inmateIds,
             description: desc,
             timestamp: Date(),
             severity: severity,
-            penalCode: code
+            penalCode: penalCode
         )
 
         do {
