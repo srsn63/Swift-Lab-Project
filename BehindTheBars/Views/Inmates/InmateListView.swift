@@ -3,6 +3,7 @@ import SwiftUI
 struct InmateListView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var vm = InmateCRUDViewModel()
+    @StateObject private var blocksVM = BlocksDirectoryViewModel()
 
     @State private var searchText = ""
     @State private var showingAdd = false
@@ -20,19 +21,69 @@ struct InmateListView: View {
     var body: some View {
         List {
             if let err = vm.errorMessage {
-                Text(err).foregroundStyle(.red)
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(AppTheme.danger)
+                    Text(err)
+                        .foregroundStyle(AppTheme.danger)
+                        .font(.footnote)
+                }
+            }
+
+            if filtered.isEmpty && vm.errorMessage == nil {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 10) {
+                        Image(systemName: "person.crop.rectangle.stack")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(searchText.isEmpty ? "No inmates found" : "No results for \"\(searchText)\"")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 40)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
             }
 
             ForEach(filtered) { inmate in
                 NavigationLink {
                     InmateDetailView(inmate: inmate)
                 } label: {
-                    VStack(alignment: .leading) {
-                        Text(inmate.fullName)
-                        Text("Block: \(inmate.blockId) • Cell: \(inmate.cellId) • \(inmate.securityLevel)")
-                            .font(.footnote)
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.securityColor(inmate.securityLevel).opacity(0.12))
+                                .frame(width: 44, height: 44)
+                            Text(String(inmate.firstName.prefix(1)))
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(AppTheme.securityColor(inmate.securityLevel))
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(inmate.fullName)
+                                .font(.subheadline.bold())
+                            HStack(spacing: 6) {
+                                Label(getBlockName(id: inmate.blockId), systemImage: "building.2")
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                Text("•")
+                                Label(inmate.cellId, systemImage: "door.left.hand.closed")
+                            }
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        StatusBadge(
+                            text: inmate.securityLevel,
+                            color: AppTheme.securityColor(inmate.securityLevel),
+                            small: true
+                        )
                     }
+                    .padding(.vertical, 4)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !isGuard {
@@ -47,12 +98,20 @@ struct InmateListView: View {
                 }
             }
         }
+        .task {
+            await blocksVM.load()
+        }
+        .listStyle(.insetGrouped)
         .navigationTitle("Inmates")
-        .searchable(text: $searchText)
+        .searchable(text: $searchText, prompt: "Search by name or cell")
         .toolbar {
             if !isGuard {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
+                    Button { showingAdd = true } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(AppTheme.accent)
+                    }
                 }
             }
         }
@@ -81,5 +140,9 @@ struct InmateListView: View {
                 }
             }
         }
+    }
+
+    private func getBlockName(id: String) -> String {
+        blocksVM.blocks.first(where: { $0.id == id })?.name ?? id
     }
 }

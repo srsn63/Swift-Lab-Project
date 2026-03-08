@@ -16,14 +16,38 @@ struct GuardEditorView: View {
 
     var body: some View {
         List {
-            Section("Account") {
-                Text(user.email)
-                Text(user.role)
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    Text(user.email)
+                }
+                HStack(spacing: 12) {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    Text(user.role.capitalized)
+                }
+            } header: {
+                Label("Account", systemImage: "person.circle")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
 
-            Section("Editable") {
-                TextField("Full name", text: $fullName)
-                TextField("Badge number", text: $badgeNumber)
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    TextField("Full name", text: $fullName)
+                }
+                HStack(spacing: 12) {
+                    Image(systemName: "number")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    TextField("Badge number", text: $badgeNumber)
+                }
 
                 Menu {
                     Button("Unassigned") { assignedBlockId = "" }
@@ -31,26 +55,45 @@ struct GuardEditorView: View {
                         Button(b.name) { assignedBlockId = b.id ?? "" }
                     }
                 } label: {
-                    HStack {
-                        Text("Assigned block")
+                    HStack(spacing: 12) {
+                        Image(systemName: "building.2")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        Text("Assigned Block")
                         Spacer()
-                        Text(currentBlockName).foregroundStyle(.secondary)
-                        Image(systemName: "chevron.down").foregroundStyle(.secondary)
+                        Text(currentBlockName)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
                 if let err = errorMessage {
-                    Text(err).foregroundStyle(.red)
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(AppTheme.danger)
+                        Text(err)
+                            .foregroundStyle(AppTheme.danger)
+                            .font(.footnote)
+                    }
                 }
+            } header: {
+                Label("Details", systemImage: "pencil")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Edit Guard")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") { save() }
+                    .fontWeight(.semibold)
             }
         }
         .onAppear {

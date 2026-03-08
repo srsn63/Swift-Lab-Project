@@ -1,0 +1,211 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function hasUserDoc() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isApproved() { return hasUserDoc() && userDoc().approved == true; }
+    function isAdmin()    { return hasUserDoc() && userDoc().role == "admin"; }
+    function isWarden()   { return hasUserDoc() && userDoc().role == "warden"; }
+    function isGuard()    { return hasUserDoc() && userDoc().role == "guard"; }
+
+    // Convenience: approved guard with valid assigned block
+    function guardHasBlock() {
+      return isApproved()
+        && isGuard()
+        && (userDoc().assignedBlockId is string)
+        && userDoc().assignedBlockId != "";
+    }
+
+    // Staff-specific helpers
+    function validShift(shift) {
+      return shift in ["morning", "day", "night"];
+    }
+
+    function validStaffType(staffType) {
+      return staffType in [
+        "doctor",
+        "nurse",
+        "medical_assistant",
+        "kitchen",
+        "maintenance",
+        "cleaner",
+        "clerk",
+        "counselor",
+        "visitation_officer",
+        "other"
+      ];
+    }
+
+    function validBlockRef(blockId) {
+      return !(blockId is string)
+        || blockId == ""
+        || exists(/databases/$(database)/documents/blocks/$(blockId));
+    }
+
+    // USERS
+    match /users/{uid} {
+
+      // Admin: read all
+      // Self: read own
+      // Warden: read guard + warden docs (needed to resolve "reported by" names and role)
+      allow read: if isAdmin()
+        || (signedIn() && request.auth.uid == uid)
+        || (isApproved() && isWarden()
+            && (resource.data.role == "guard" || resource.data.role == "warden"));
+
+      // Signup creates own doc as pending
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email is string
+        && request.resource.data.role in ["guard", "warden"]
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.approved == false
+        && request.resource.data.status == "pending";
+
+      // Admin full control
+      allow update, delete: if isAdmin();
+
+      // Self-update: personal fields only (cannot change control fields or assignedBlockId)
+      allow update: if isApproved()
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.approved == resource.data.approved
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.get("assignedBlockId", "") == resource.data.get("assignedBlockId", "");
+
+      // Warden can update guard profiles (including assignedBlockId)
+      // assignedBlockId must be "" or an existing blocks/{blockId}
+      allow update: if isApproved()
+        && isWarden()
+        && resource.data.role == "guard"
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.approved == resource.data.approved
+        && request.resource.data.status == resource.data.status
+        && (
+          !(request.resource.data.assignedBlockId is string)
+          || request.resource.data.assignedBlockId == ""
+          || exists(/databases/$(database)/documents/blocks/$(request.resource.data.assignedBlockId))
+        );
+    }
+
+    // STAFF (non-login records)
+    match /staff/{staffId} {
+
+      // Admin + Warden can view all staff
+      allow read: if isApproved() && (isAdmin() || isWarden());
+
+      // Admin + Warden can create staff
+      allow create: if isApproved()
+        && (isAdmin() || isWarden())
+        && request.resource.data.fullName is string
+        && request.resource.data.staffType is string
+        && validStaffType(request.resource.data.staffType)
+        && request.resource.data.phoneNumber is string
+        && request.resource.data.shift is string
+        && validShift(request.resource.data.shift)
+        && request.resource.data.hireDate is timestamp
+        && request.resource.data.isActive is bool
+        && request.resource.data.notes is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && validBlockRef(request.resource.data.assignedBlockId);
+
+      // Admin + Warden can update staff
+      allow update: if isApproved()
+        && (isAdmin() || isWarden())
+        && request.resource.data.fullName is string
+        && request.resource.data.staffType is string
+        && validStaffType(request.resource.data.staffType)
+        && request.resource.data.phoneNumber is string
+        && request.resource.data.shift is string
+        && validShift(request.resource.data.shift)
+        && request.resource.data.hireDate is timestamp
+        && request.resource.data.isActive is bool
+        && request.resource.data.notes is string
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp
+        && validBlockRef(request.resource.data.assignedBlockId);
+
+      // Admin + Warden can delete staff
+      allow delete: if isApproved() && (isAdmin() || isWarden());
+    }
+
+    // BLOCKS
+    match /blocks/{blockId} {
+      allow read: if isAdmin() || (isApproved() && (isWarden() || isGuard()));
+      allow create, update, delete: if isAdmin();
+
+      // CELLS
+      match /cells/{cellId} {
+        allow read: if isAdmin() || (isApproved() && (isWarden() || isGuard()));
+        allow create, delete: if isAdmin();
+
+        // Admin can update anything
+        allow update: if isAdmin();
+
+        // Warden can update ONLY occupancy (admit/delete inmate transactions)
+        allow update: if isApproved()
+          && isWarden()
+          && request.resource.data.cellCode == resource.data.cellCode
+          && request.resource.data.blockName == resource.data.blockName
+          && request.resource.data.capacity == resource.data.capacity
+          && request.resource.data.occupancy is int
+          && request.resource.data.occupancy >= 0
+          && request.resource.data.occupancy <= resource.data.capacity;
+      }
+    }
+
+    // INMATES
+    match /inmates/{inmateId} {
+      // admin/warden: read all
+      // guard: read only inmates in assigned block
+      allow read: if isApproved() && (
+        isAdmin() || isWarden() ||
+        (guardHasBlock()
+          && resource.data.blockId == userDoc().assignedBlockId
+        )
+      );
+
+      // only warden/admin can manage inmates
+      allow create, update, delete: if isApproved() && (isWarden() || isAdmin());
+    }
+
+    // INCIDENTS
+    match /incidents/{incidentId} {
+      // admin + warden can view incident reports; guard can also view
+      allow read: if isApproved() && (isAdmin() || isWarden() || isGuard());
+
+      // create:
+      // - admin/warden anywhere
+      // - guard only for their assigned block
+      allow create: if isApproved() && (
+        isWarden() || isAdmin() ||
+        (guardHasBlock()
+          && request.resource.data.blockId == userDoc().assignedBlockId
+        )
+      );
+
+      // update/delete only admin/warden
+      allow update, delete: if isApproved() && (isWarden() || isAdmin());
+    }
+  }
+}

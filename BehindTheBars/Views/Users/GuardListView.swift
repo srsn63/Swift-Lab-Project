@@ -49,33 +49,91 @@ final class GuardListViewModel: ObservableObject {
 struct GuardListView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var vm = GuardListViewModel()
+    @StateObject private var blocksVM = BlocksDirectoryViewModel()
 
     @State private var editing: User?
 
     var body: some View {
         List {
             if let err = vm.errorMessage {
-                Text(err).foregroundStyle(.red)
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(AppTheme.danger)
+                    Text(err)
+                        .foregroundStyle(AppTheme.danger)
+                        .font(.footnote)
+                }
+            }
+
+            if vm.guards.isEmpty && vm.errorMessage == nil {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 10) {
+                        Image(systemName: "shield")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text("No guards found")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 40)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
             }
 
             ForEach(vm.guards) { g in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(g.email).font(.headline)
-
-                    Text("Badge: \(g.badgeNumber ?? "-") • BlockId: \(g.assignedBlockId ?? "-")")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
+                VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.accent.opacity(0.12))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "shield.fill")
+                                .foregroundColor(AppTheme.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(g.fullName ?? g.email)
+                                .font(.subheadline.bold())
+                            if g.fullName != nil {
+                                Text(g.email)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        if let blockId = g.assignedBlockId, !blockId.isEmpty {
+                            StatusBadge(text: getBlockName(id: blockId), color: AppTheme.accent, small: true)
+                        } else {
+                            StatusBadge(text: "Unassigned", color: .secondary, small: true)
+                        }
+                    }
+
+                    if let badge = g.badgeNumber, !badge.isEmpty {
+                        Label(badge, systemImage: "number")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 10) {
                         Button {
                             editing = g
                         } label: {
                             Label("Edit", systemImage: "pencil")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.accent)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppTheme.accent.opacity(0.1))
+                                .cornerRadius(8)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.plain)
 
                         if authVM.currentUser?.role == "admin" {
-                            Button(role: .destructive) {
+                            Button {
                                 Task {
                                     do {
                                         try await vm.deleteGuardDoc(uid: g.uid)
@@ -85,16 +143,25 @@ struct GuardListView: View {
                                 }
                             } label: {
                                 Label("Delete", systemImage: "trash")
+                                    .font(.caption.bold())
+                                    .foregroundColor(AppTheme.danger)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(AppTheme.danger.opacity(0.1))
+                                    .cornerRadius(8)
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(.top, 6)
                 }
                 .padding(.vertical, 6)
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Guards")
+        .task {
+            await blocksVM.load()
+        }
         .onAppear { vm.startListener() }
         .onDisappear { vm.stopListener() }
         .sheet(item: $editing) { guardUser in
@@ -109,5 +176,9 @@ struct GuardListView: View {
                 }
             }
         }
+    }
+
+    private func getBlockName(id: String) -> String {
+        blocksVM.blocks.first(where: { $0.id == id })?.name ?? id
     }
 }

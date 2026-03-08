@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct InmateEditorView: View {
-    let inmateId: String?          // nil = create, non-nil = edit
+    let inmateId: String?
     let existing: Inmate?
     let onSave: (Inmate) async throws -> Void
 
@@ -12,7 +12,6 @@ struct InmateEditorView: View {
     @State private var securityLevel = "Low"
     @State private var isSolitary = false
 
-    // New model fields
     @State private var blockId = ""
     @State private var cellId = ""
     @State private var admissionDate = Date()
@@ -24,37 +23,68 @@ struct InmateEditorView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Identity")) {
-                TextField("First name", text: $firstName)
-                TextField("Last name", text: $lastName)
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    TextField("First name", text: $firstName)
+                }
+                HStack(spacing: 12) {
+                    Image(systemName: "person.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 20)
+                    TextField("Last name", text: $lastName)
+                }
+            } header: {
+                Label("Identity", systemImage: "person.text.rectangle")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
 
-            Section(header: Text("Security")) {
+            Section {
                 Picker("Security level", selection: $securityLevel) {
-                    ForEach(levels, id: \.self) { Text($0) }
+                    ForEach(levels, id: \.self) { level in
+                        HStack {
+                            Circle()
+                                .fill(AppTheme.securityColor(level))
+                                .frame(width: 8, height: 8)
+                            Text(level)
+                        }
+                        .tag(level)
+                    }
                 }
-                Toggle("Solitary", isOn: $isSolitary)
+                Toggle(isOn: $isSolitary) {
+                    Label("Solitary Confinement", systemImage: "lock.fill")
+                }
+            } header: {
+                Label("Security", systemImage: "shield.lefthalf.filled")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
 
-            Section(header: Text("Placement")) {
-                // Keep these read-only in edit mode to avoid breaking cell occupancy logic.
+            Section {
                 HStack {
-                    Text("Block")
+                    Label("Block", systemImage: "building.2")
                     Spacer()
-                    Text(blockId.isEmpty ? "--" : blockId)
+                    Text(blockId.isEmpty ? "\u{2014}" : blockId)
                         .foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("Cell")
+                    Label("Cell", systemImage: "door.left.hand.closed")
                     Spacer()
-                    Text(cellId.isEmpty ? "--" : cellId)
+                    Text(cellId.isEmpty ? "\u{2014}" : cellId)
                         .foregroundStyle(.secondary)
                 }
+            } header: {
+                Label("Placement", systemImage: "mappin.and.ellipse")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
 
-            Section(header: Text("Sentence")) {
+            Section {
                 DatePicker("Admission date", selection: $admissionDate, displayedComponents: .date)
-                Stepper("Sentence months: \(sentenceMonths)", value: $sentenceMonths, in: 1...600)
+                Stepper("Sentence: \(sentenceMonths) months", value: $sentenceMonths, in: 1...600)
 
                 let release = Calendar.current.date(byAdding: .month, value: sentenceMonths, to: admissionDate) ?? admissionDate
                 HStack {
@@ -63,21 +93,33 @@ struct InmateEditorView: View {
                     Text(release.formatted(date: .abbreviated, time: .omitted))
                         .foregroundStyle(.secondary)
                 }
+            } header: {
+                Label("Sentence", systemImage: "calendar")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
             }
 
             if let errorMessage {
                 Section {
-                    Text(errorMessage).foregroundStyle(.red)
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(AppTheme.danger)
+                        Text(errorMessage)
+                            .foregroundStyle(AppTheme.danger)
+                            .font(.footnote)
+                    }
                 }
             }
         }
         .navigationTitle(inmateId == nil ? "Add Inmate" : "Edit Inmate")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") { save() }
+                    .fontWeight(.semibold)
                     .disabled(firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
                               lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
                               blockId.isEmpty ||
@@ -99,9 +141,6 @@ struct InmateEditorView: View {
             admissionDate = existing.admissionDate
             sentenceMonths = existing.sentenceMonths
         } else {
-            // Creating from this screen is NOT recommended anymore.
-            // Admission should happen via InmateAdmissionView (block/cell capacity enforcement).
-            // Leave blockId/cellId empty to force using the admission screen.
             blockId = ""
             cellId = ""
         }

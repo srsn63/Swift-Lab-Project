@@ -11,41 +11,126 @@ struct ProfileView: View {
         false
     }
 
+    private var initials: String {
+        let name = authVM.currentUser?.fullName ?? authVM.currentUser?.email ?? ""
+        let parts = name.split(separator: " ")
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1) + parts[1].prefix(1)).uppercased()
+        }
+        return String(name.prefix(2)).uppercased()
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Account")) {
-                    Text(authVM.currentUser?.email ?? "--")
-                    Text(authVM.currentUser?.role ?? "--")
+                // Avatar header
+                Section {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.accentGradient)
+                                    .frame(width: 72, height: 72)
+                                Text(initials)
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
 
-                    if authVM.currentUser?.role == "guard" {
-                        Text("Assigned Block ID: \(authVM.currentUser?.assignedBlockId ?? "--")")
-                            .foregroundStyle(.secondary)
+                            Text(authVM.currentUser?.email ?? "")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            StatusBadge(
+                                text: authVM.currentUser?.role.uppercased() ?? "",
+                                color: roleColor
+                            )
+                        }
+                        .padding(.vertical, 8)
+                        Spacer()
+                    }
+                }
+                .listRowBackground(Color.clear)
+
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "envelope.fill")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        Text(authVM.currentUser?.email ?? "—")
+                    }
+                    HStack(spacing: 12) {
+                        Image(systemName: "shield.lefthalf.filled")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        Text(authVM.currentUser?.role.capitalized ?? "—")
                     }
 
-                    Text("Status: \(authVM.currentUser?.status ?? "--")")
-                        .foregroundStyle(.secondary)
+                    if authVM.currentUser?.role == "guard" {
+                        HStack(spacing: 12) {
+                            Image(systemName: "building.2")
+                                .foregroundColor(AppTheme.accent)
+                                .frame(width: 20)
+                            Text("Block: \(authVM.currentUser?.assignedBlockId ?? "—")")
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.seal")
+                            .foregroundColor(AppTheme.success)
+                            .frame(width: 20)
+                        Text("Status: \(authVM.currentUser?.status ?? "—")")
+                    }
+                } header: {
+                    Label("Account", systemImage: "person.circle")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
 
-                Section(header: Text("Personal details")) {
-                    TextField("Full name", text: $vm.fullName)
-                    TextField("Badge number", text: $vm.badgeNumber)
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        TextField("Full name", text: $vm.fullName)
+                    }
+                    HStack(spacing: 12) {
+                        Image(systemName: "number")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        TextField("Badge number", text: $vm.badgeNumber)
+                    }
 
                     if authVM.currentUser?.role == "guard" {
-                        TextField("Assigned block id", text: $vm.assignedBlockId)
-                            .disabled(true)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            Image(systemName: "building.2")
+                                .foregroundColor(.secondary)
+                                .frame(width: 20)
+                            TextField("Assigned block id", text: $vm.assignedBlockId)
+                                .disabled(true)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                } header: {
+                    Label("Personal Details", systemImage: "pencil")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
 
                 if let err = vm.errorMessage {
                     Section {
-                        Text(err).foregroundStyle(.red)
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(AppTheme.danger)
+                            Text(err)
+                                .foregroundStyle(AppTheme.danger)
+                                .font(.footnote)
+                        }
                     }
                 }
 
                 Section {
-                    Button("Save") {
+                    Button {
                         Task {
                             guard let uid = authVM.currentUser?.uid else { return }
                             do {
@@ -57,7 +142,17 @@ struct ProfileView: View {
                                 vm.errorMessage = error.localizedDescription
                             }
                         }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("Save Changes", systemImage: "checkmark.circle.fill")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
                     }
+                    .listRowBackground(AppTheme.accent)
                 }
             }
             .navigationTitle("Profile")
@@ -67,7 +162,15 @@ struct ProfileView: View {
                 }
             }
         }
-        // Uses your existing Components/Toast.swift extension (ToastView + .toast modifier)
         .toast(isPresented: $showToast, text: toastText, seconds: 1.2)
+    }
+
+    private var roleColor: Color {
+        switch authVM.currentUser?.role {
+        case "admin": return .purple
+        case "warden": return AppTheme.accent
+        case "guard": return AppTheme.success
+        default: return .secondary
+        }
     }
 }

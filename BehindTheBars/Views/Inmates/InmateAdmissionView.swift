@@ -27,20 +27,44 @@ struct InmateAdmissionView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Inmate") {
-                    TextField("First name", text: $firstName)
-                    TextField("Last name", text: $lastName)
-
-                    Picker("Security level", selection: $securityLevel) {
-                        ForEach(levels, id: \.self) { Text($0) }
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        TextField("First name", text: $firstName)
+                    }
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        TextField("Last name", text: $lastName)
                     }
 
-                    Toggle("Solitary", isOn: $isSolitary)
+                    Picker("Security level", selection: $securityLevel) {
+                        ForEach(levels, id: \.self) { level in
+                            HStack {
+                                Circle()
+                                    .fill(AppTheme.securityColor(level))
+                                    .frame(width: 8, height: 8)
+                                Text(level)
+                            }
+                            .tag(level)
+                        }
+                    }
+
+                    Toggle(isOn: $isSolitary) {
+                        Label("Solitary Confinement", systemImage: "lock.fill")
+                    }
+                } header: {
+                    Label("Inmate Details", systemImage: "person.text.rectangle")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
 
-                Section("Sentence") {
+                Section {
                     DatePicker("Admission date", selection: $admissionDate, displayedComponents: .date)
-                    Stepper("Sentence months: \(sentenceMonths)", value: $sentenceMonths, in: 1...600)
+                    Stepper("Sentence: \(sentenceMonths) months", value: $sentenceMonths, in: 1...600)
 
                     let release = Calendar.current.date(byAdding: .month, value: sentenceMonths, to: admissionDate) ?? admissionDate
                     HStack {
@@ -49,9 +73,13 @@ struct InmateAdmissionView: View {
                         Text(release.formatted(date: .abbreviated, time: .omitted))
                             .foregroundStyle(.secondary)
                     }
+                } header: {
+                    Label("Sentence", systemImage: "calendar")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
 
-                Section("Placement") {
+                Section {
                     Picker("Block", selection: $selectedBlockId) {
                         Text("Select").tag("")
                         ForEach(blocks) { b in
@@ -59,29 +87,42 @@ struct InmateAdmissionView: View {
                         }
                     }
 
-                    Picker("Cell (available only)", selection: $selectedCellId) {
+                    Picker("Cell", selection: $selectedCellId) {
                         Text("Select").tag("")
                         ForEach(availableCells) { c in
-                            Text("\(c.cellCode)  \(c.occupancy)/\(c.capacity)")
+                            Text("\(c.cellCode)  (\(c.occupancy)/\(c.capacity))")
                                 .tag(c.id ?? c.cellCode)
                         }
                     }
                     .disabled(selectedBlockId.isEmpty)
+                } header: {
+                    Label("Placement", systemImage: "building.2")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
 
                 if let errorMessage {
-                    Section("Error") {
-                        Text(errorMessage).foregroundStyle(.red)
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(AppTheme.danger)
+                            Text(errorMessage)
+                                .foregroundStyle(AppTheme.danger)
+                                .font(.footnote)
+                        }
                     }
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Admit Inmate")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Create") { create() }
+                        .fontWeight(.semibold)
                         .disabled(isCreateDisabled)
                 }
             }

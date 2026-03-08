@@ -17,7 +17,8 @@ struct ReportIncidentView: View {
                 onSubmit: submit,
                 onSelectInmates: openSelector
             )
-            .navigationTitle("Incident")
+            .navigationTitle("Report Incident")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showSelector) {
                 InmateSelectionView(
                     selectedInmates: $form.selectedInmates,
@@ -47,20 +48,26 @@ struct ReportIncidentView: View {
     @ViewBuilder
     private var statusOverlay: some View {
         if let err = vm.errorMessage {
-            banner(text: err, color: .red)
+            statusBanner(text: err, icon: "xmark.circle.fill", color: AppTheme.danger)
         } else if vm.submissionSuccess {
-            banner(text: "Incident submitted!", color: .green)
+            statusBanner(text: "Incident submitted!", icon: "checkmark.circle.fill", color: AppTheme.success)
         }
     }
 
-    private func banner(text: String, color: Color) -> some View {
-        Text(text)
-            .foregroundColor(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(color.opacity(0.9))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .padding(.bottom, 20)
+    private func statusBanner(text: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+            Text(text)
+                .fontWeight(.medium)
+        }
+        .font(.subheadline)
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(color)
+        .cornerRadius(12)
+        .shadow(color: color.opacity(0.3), radius: 8, y: 4)
+        .padding(.bottom, 20)
     }
 
     private func submit() {
