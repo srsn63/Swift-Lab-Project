@@ -11,6 +11,7 @@ final class FirebaseManager {
     var inmatesRef: CollectionReference { firestore.collection("inmates") }
     var incidentsRef: CollectionReference { firestore.collection("incidents") }
     var blocksRef: CollectionReference { firestore.collection("blocks") }
+    var staffRef: CollectionReference { firestore.collection("staff") }
 
     func cellsRef(blockId: String) -> CollectionReference {
         blocksRef.document(blockId).collection("cells")

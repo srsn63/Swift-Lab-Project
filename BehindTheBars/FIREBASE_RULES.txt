@@ -103,6 +103,11 @@ service cloud.firestore {
           || request.resource.data.assignedBlockId == ""
           || exists(/databases/$(database)/documents/blocks/$(request.resource.data.assignedBlockId))
         );
+
+      // Warden can delete guard profiles
+      allow delete: if isApproved()
+        && isWarden()
+        && resource.data.role == "guard";
     }
 
     // STAFF (non-login records)
@@ -111,42 +116,8 @@ service cloud.firestore {
       // Admin + Warden can view all staff
       allow read: if isApproved() && (isAdmin() || isWarden());
 
-      // Admin + Warden can create staff
-      allow create: if isApproved()
-        && (isAdmin() || isWarden())
-        && request.resource.data.fullName is string
-        && request.resource.data.staffType is string
-        && validStaffType(request.resource.data.staffType)
-        && request.resource.data.phoneNumber is string
-        && request.resource.data.shift is string
-        && validShift(request.resource.data.shift)
-        && request.resource.data.hireDate is timestamp
-        && request.resource.data.isActive is bool
-        && request.resource.data.notes is string
-        && request.resource.data.createdBy is string
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && validBlockRef(request.resource.data.assignedBlockId);
-
-      // Admin + Warden can update staff
-      allow update: if isApproved()
-        && (isAdmin() || isWarden())
-        && request.resource.data.fullName is string
-        && request.resource.data.staffType is string
-        && validStaffType(request.resource.data.staffType)
-        && request.resource.data.phoneNumber is string
-        && request.resource.data.shift is string
-        && validShift(request.resource.data.shift)
-        && request.resource.data.hireDate is timestamp
-        && request.resource.data.isActive is bool
-        && request.resource.data.notes is string
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt is timestamp
-        && validBlockRef(request.resource.data.assignedBlockId);
-
-      // Admin + Warden can delete staff
-      allow delete: if isApproved() && (isAdmin() || isWarden());
+      // Admin + Warden: full create, update, delete
+      allow create, update, delete: if isApproved() && (isAdmin() || isWarden());
     }
 
     // BLOCKS

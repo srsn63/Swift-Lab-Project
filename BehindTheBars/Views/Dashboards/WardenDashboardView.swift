@@ -46,6 +46,16 @@ struct WardenDashboardView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
+                    NavigationLink { StaffListView() } label: {
+                        DashboardCard(
+                            title: "Staff",
+                            subtitle: "Manage prison staff",
+                            icon: "person.3.fill",
+                            color: .teal
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(20)
             }

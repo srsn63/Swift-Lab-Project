@@ -52,6 +52,7 @@ struct GuardListView: View {
     @StateObject private var blocksVM = BlocksDirectoryViewModel()
 
     @State private var editing: User?
+    @State private var deleting: User?
 
     var body: some View {
         List {
@@ -94,9 +95,9 @@ struct GuardListView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(g.fullName ?? g.email)
+                            Text(displayName(for: g))
                                 .font(.subheadline.bold())
-                            if g.fullName != nil {
+                            if shouldShowEmail(for: g) {
                                 Text(g.email)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -132,15 +133,9 @@ struct GuardListView: View {
                         }
                         .buttonStyle(.plain)
 
-                        if authVM.currentUser?.role == "admin" {
+                        if authVM.currentUser?.role == "admin" || authVM.currentUser?.role == "warden" {
                             Button {
-                                Task {
-                                    do {
-                                        try await vm.deleteGuardDoc(uid: g.uid)
-                                    } catch {
-                                        vm.errorMessage = error.localizedDescription
-                                    }
-                                }
+                                deleting = g
                             } label: {
                                 Label("Delete", systemImage: "trash")
                                     .font(.caption.bold())
@@ -176,9 +171,36 @@ struct GuardListView: View {
                 }
             }
         }
+        .alert("Delete Guard", isPresented: .constant(deleting != nil), presenting: deleting) { user in
+            Button("Cancel", role: .cancel) {
+                deleting = nil
+            }
+            Button("Delete", role: .destructive) {
+                Task {
+                    do {
+                        try await vm.deleteGuardDoc(uid: user.uid)
+                    } catch {
+                        vm.errorMessage = error.localizedDescription
+                    }
+                }
+                deleting = nil
+            }
+        } message: { user in
+            Text("Delete \(displayName(for: user))? This cannot be undone.")
+        }
     }
 
     private func getBlockName(id: String) -> String {
         blocksVM.blocks.first(where: { $0.id == id })?.name ?? id
+    }
+
+    private func displayName(for user: User) -> String {
+        let name = (user.fullName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? user.email : name
+    }
+
+    private func shouldShowEmail(for user: User) -> Bool {
+        let name = (user.fullName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return !name.isEmpty
     }
 }

@@ -8,6 +8,7 @@ struct InmateListView: View {
     @State private var searchText = ""
     @State private var showingAdd = false
     @State private var editingInmate: Inmate?
+    @State private var deletingInmate: Inmate?
 
     private var isGuard: Bool { authVM.currentUser?.role == "guard" }
     private var guardBlockId: String { authVM.currentUser?.assignedBlockId ?? "" }
@@ -48,52 +49,73 @@ struct InmateListView: View {
             }
 
             ForEach(filtered) { inmate in
-                NavigationLink {
-                    InmateDetailView(inmate: inmate)
-                } label: {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.securityColor(inmate.securityLevel).opacity(0.12))
-                                .frame(width: 44, height: 44)
-                            Text(String(inmate.firstName.prefix(1)))
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppTheme.securityColor(inmate.securityLevel))
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(inmate.fullName)
-                                .font(.subheadline.bold())
-                            HStack(spacing: 6) {
-                                Label(getBlockName(id: inmate.blockId), systemImage: "building.2")
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                Text("•")
-                                Label(inmate.cellId, systemImage: "door.left.hand.closed")
+                VStack(alignment: .leading, spacing: 8) {
+                    NavigationLink {
+                        InmateDetailView(inmate: inmate)
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.securityColor(inmate.securityLevel).opacity(0.12))
+                                    .frame(width: 44, height: 44)
+                                Text(String(inmate.firstName.prefix(1)))
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppTheme.securityColor(inmate.securityLevel))
                             }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(inmate.fullName)
+                                    .font(.subheadline.bold())
+                                HStack(spacing: 6) {
+                                    Label(getBlockName(id: inmate.blockId), systemImage: "building.2")
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    Text("•")
+                                    Label(inmate.cellId, systemImage: "door.left.hand.closed")
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            StatusBadge(
+                                text: inmate.securityLevel,
+                                color: AppTheme.securityColor(inmate.securityLevel),
+                                small: true
+                            )
                         }
-
-                        Spacer()
-
-                        StatusBadge(
-                            text: inmate.securityLevel,
-                            color: AppTheme.securityColor(inmate.securityLevel),
-                            small: true
-                        )
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if !isGuard {
-                        Button(role: .destructive) {
-                            Task { try? await vm.delete(inmateId: inmate.id ?? "") }
-                        } label: { Text("Delete") }
 
-                        Button {
-                            editingInmate = inmate
-                        } label: { Text("Edit") }
+                    if !isGuard {
+                        HStack(spacing: 10) {
+                            Button {
+                                editingInmate = inmate
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                                    .font(.caption.bold())
+                                    .foregroundColor(AppTheme.accent)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(AppTheme.accent.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                deletingInmate = inmate
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                                    .font(.caption.bold())
+                                    .foregroundColor(AppTheme.danger)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(AppTheme.danger.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
@@ -139,6 +161,18 @@ struct InmateListView: View {
                     try await vm.update(inmateId: id, inmate: updated)
                 }
             }
+        }
+        .alert("Delete Inmate", isPresented: .constant(deletingInmate != nil), presenting: deletingInmate) { inmate in
+            Button("Cancel", role: .cancel) {
+                deletingInmate = nil
+            }
+            Button("Delete", role: .destructive) {
+                guard let id = inmate.id else { return }
+                Task { try? await vm.delete(inmateId: id) }
+                deletingInmate = nil
+            }
+        } message: { inmate in
+            Text("Delete \(inmate.fullName)? This cannot be undone.")
         }
     }
 
