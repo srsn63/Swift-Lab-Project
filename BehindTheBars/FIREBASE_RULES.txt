@@ -114,7 +114,16 @@ service cloud.firestore {
     match /staff/{staffId} {
 
       // Admin + Warden can view all staff
-      allow read: if isApproved() && (isAdmin() || isWarden());
+      // Guard can view only doctors in their assigned block for medical record assignment
+      allow read: if isApproved() && (
+        isAdmin()
+        || isWarden()
+        || (
+          guardHasBlock()
+          && resource.data.staffType == "doctor"
+          && resource.data.assignedBlockId == userDoc().assignedBlockId
+        )
+      );
 
       // Admin + Warden: full create, update, delete
       allow create, update, delete: if isApproved() && (isAdmin() || isWarden());
@@ -177,6 +186,34 @@ service cloud.firestore {
 
       // update/delete only admin/warden
       allow update, delete: if isApproved() && (isWarden() || isAdmin());
+    }
+
+    // MEDICAL RECORDS
+    match /medical_records/{recordId} {
+      // admin + warden can view all medical records
+      // guard can view only records for their assigned block
+      allow read: if isApproved() && (
+        isAdmin() || isWarden() || (
+          guardHasBlock()
+          && resource.data.blockId == userDoc().assignedBlockId
+        )
+      );
+
+      // guards can create/update records for inmates in their assigned block only
+      allow create, update: if isApproved() && (
+        isAdmin() || (
+          guardHasBlock()
+          && request.resource.data.blockId == userDoc().assignedBlockId
+        )
+      );
+
+      // guards can delete only records that already belong to their assigned block
+      allow delete: if isApproved() && (
+        isAdmin() || (
+          guardHasBlock()
+          && resource.data.blockId == userDoc().assignedBlockId
+        )
+      );
     }
   }
 }

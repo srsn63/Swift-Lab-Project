@@ -10,6 +10,7 @@ final class FirebaseManager {
     var usersRef: CollectionReference { firestore.collection("users") }
     var inmatesRef: CollectionReference { firestore.collection("inmates") }
     var incidentsRef: CollectionReference { firestore.collection("incidents") }
+    var medicalRecordsRef: CollectionReference { firestore.collection("medical_records") }
     var blocksRef: CollectionReference { firestore.collection("blocks") }
     var staffRef: CollectionReference { firestore.collection("staff") }
 
