@@ -3,13 +3,14 @@ import FirebaseFirestoreSwift
 
 struct GuardEditorView: View {
     let user: User
-    let onSave: (String, String, String) async throws -> Void // fullName, badgeNumber, assignedBlockId
+    let onSave: (String, String, String, Date) async throws -> Void // fullName, badgeNumber, assignedBlockId, dutyStartAt
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var fullName: String = ""
     @State private var badgeNumber: String = ""
     @State private var assignedBlockId: String = ""   // MUST be blocks/{blockId} document id
+    @State private var dutyStartAt: Date = Date()
 
     @State private var blocks: [Block] = []
     @State private var errorMessage: String?
@@ -69,6 +70,19 @@ struct GuardEditorView: View {
                     }
                 }
 
+                DatePicker(selection: $dutyStartAt, displayedComponents: [.date, .hourAndMinute]) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.badge.checkmark")
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        Text("First Duty Start")
+                    }
+                }
+
+                Text("Each guard works 8 hours, rests 8 hours, then repeats from this start time.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if let err = errorMessage {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -100,6 +114,7 @@ struct GuardEditorView: View {
             fullName = user.fullName ?? ""
             badgeNumber = user.badgeNumber ?? ""
             assignedBlockId = user.assignedBlockId ?? ""
+            dutyStartAt = user.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: user.shift)
             Task { await loadBlocks() }
         }
     }
@@ -127,7 +142,8 @@ struct GuardEditorView: View {
                 try await onSave(
                     fullName.trimmingCharacters(in: .whitespacesAndNewlines),
                     badgeNumber.trimmingCharacters(in: .whitespacesAndNewlines),
-                    assignedBlockId
+                    assignedBlockId,
+                    dutyStartAt
                 )
                 dismiss()
             } catch {

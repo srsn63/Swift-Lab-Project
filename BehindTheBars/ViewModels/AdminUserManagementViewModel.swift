@@ -104,6 +104,7 @@ final class AdminUserManagementViewModel: ObservableObject {
         fullName: String,
         badgeNumber: String,
         assignedBlockId: String,
+        dutyStartAt: Date?,
         approved: Bool,
         status: String
     ) async throws {
@@ -117,8 +118,17 @@ final class AdminUserManagementViewModel: ObservableObject {
 
         if role == "guard" {
             payload["assignedBlockId"] = assignedBlockId
+            if let dutyStartAt {
+                payload["dutyStartAt"] = Timestamp(date: dutyStartAt)
+                payload["shift"] = ShiftDutySchedule.initialShiftName(for: dutyStartAt)
+            } else {
+                payload["dutyStartAt"] = FieldValue.delete()
+                payload["shift"] = FieldValue.delete()
+            }
         } else {
             payload["assignedBlockId"] = ""
+            payload["dutyStartAt"] = FieldValue.delete()
+            payload["shift"] = FieldValue.delete()
         }
 
         try await FirebaseManager.shared.usersRef.document(uid).updateData(payload)

@@ -9,9 +9,17 @@ final class AuthViewModel: ObservableObject {
     @Published var currentUser: User?
 
     private let db = Firestore.firestore()
+    private var currentUserListener: ListenerRegistration?
+
+    deinit {
+        currentUserListener?.remove()
+    }
 
     init() {
         self.userSession = Auth.auth().currentUser
+        if let uid = self.userSession?.uid {
+            startCurrentUserListener(for: uid)
+        }
         Task { await fetchCurrentUser() }
     }
 
@@ -19,6 +27,7 @@ final class AuthViewModel: ObservableObject {
         let email = normalize(email)
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
         self.userSession = result.user
+        startCurrentUserListener(for: result.user.uid)
         await fetchCurrentUser()
     }
 
@@ -43,21 +52,28 @@ final class AuthViewModel: ObservableObject {
             status: "pending",
             fullName: nil,
             badgeNumber: nil,
-            assignedBlockId: nil
+            assignedBlockId: nil,
+            shift: nil,
+            dutyStartAt: nil
         )
 
         try db.collection("users").document(uid).setData(from: userDoc, merge: false)
         self.currentUser = userDoc
+        startCurrentUserListener(for: uid)
     }
 
     func signOut() {
         try? Auth.auth().signOut()
+        currentUserListener?.remove()
+        currentUserListener = nil
         self.userSession = nil
         self.currentUser = nil
     }
 
     func fetchCurrentUser() async {
         guard let fbUser = Auth.auth().currentUser else {
+            currentUserListener?.remove()
+            currentUserListener = nil
             self.currentUser = nil
             return
         }
@@ -67,6 +83,7 @@ final class AuthViewModel: ObservableObject {
             let snap = try await db.collection("users").document(uid).getDocument()
             if snap.exists {
                 self.currentUser = try snap.data(as: User.self)
+                startCurrentUserListener(for: uid)
             } else {
                 // If missing doc, do not auto-create (approval system relies on explicit signup)
                 self.currentUser = nil
@@ -91,6 +108,25 @@ final class AuthViewModel: ObservableObject {
         if email.hasSuffix("@guard.com") { return "guard" }
         if email.hasSuffix("@warden.com") { return "warden" }
         return nil
+    }
+
+    private func startCurrentUserListener(for uid: String) {
+        currentUserListener?.remove()
+        currentUserListener = db.collection("users").document(uid)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+
+                guard let snapshot else {
+                    self.currentUser = nil
+                    return
+                }
+
+                if snapshot.exists {
+                    self.currentUser = try? snapshot.data(as: User.self)
+                } else {
+                    self.currentUser = nil
+                }
+            }
     }
 
     enum AuthVMError: LocalizedError {

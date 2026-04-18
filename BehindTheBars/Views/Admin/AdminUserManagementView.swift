@@ -217,13 +217,14 @@ struct AdminUserManagementView: View {
                 AdminUserEditorView(
                     user: user,
                     blocks: vm.blocks
-                ) { role, fullName, badge, assignedBlockId, approved, status in
+                ) { role, fullName, badge, assignedBlockId, dutyStartAt, approved, status in
                     try await vm.updateUser(
                         uid: user.uid,
                         role: role,
                         fullName: fullName,
                         badgeNumber: badge,
                         assignedBlockId: assignedBlockId,
+                        dutyStartAt: dutyStartAt,
                         approved: approved,
                         status: status
                     )
@@ -275,7 +276,7 @@ struct AdminUserManagementView: View {
 private struct AdminUserEditorView: View {
     let user: User
     let blocks: [Block]
-    let onSave: (String, String, String, String, Bool, String) async throws -> Void
+    let onSave: (String, String, String, String, Date?, Bool, String) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -283,6 +284,7 @@ private struct AdminUserEditorView: View {
     @State private var fullName: String = ""
     @State private var badgeNumber: String = ""
     @State private var assignedBlockId: String = ""
+    @State private var dutyStartAt: Date = Date()
     @State private var approved: Bool = false
     @State private var status: String = "pending"
     @State private var errorMessage: String?
@@ -349,6 +351,19 @@ private struct AdminUserEditorView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
+                    DatePicker(selection: $dutyStartAt, displayedComponents: [.date, .hourAndMinute]) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "clock.badge.checkmark")
+                                .foregroundColor(AppTheme.accent)
+                                .frame(width: 20)
+                            Text("First Duty Start")
+                        }
+                    }
+
+                    Text("The app repeats an 8-hour duty and 8-hour rest cycle from this date and time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } header: {
                     Label("Assignment", systemImage: "mappin.and.ellipse")
                         .font(.caption.bold())
@@ -399,6 +414,7 @@ private struct AdminUserEditorView: View {
             fullName = user.fullName ?? ""
             badgeNumber = user.badgeNumber ?? ""
             assignedBlockId = user.assignedBlockId ?? ""
+            dutyStartAt = user.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: user.shift)
             approved = user.approved
             status = user.status
         }
@@ -413,7 +429,15 @@ private struct AdminUserEditorView: View {
         errorMessage = nil
         Task {
             do {
-                try await onSave(role, fullName, badgeNumber, assignedBlockId, approved, status)
+                try await onSave(
+                    role,
+                    fullName,
+                    badgeNumber,
+                    assignedBlockId,
+                    role == "guard" ? dutyStartAt : nil,
+                    approved,
+                    status
+                )
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

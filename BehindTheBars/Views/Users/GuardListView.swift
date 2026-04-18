@@ -37,11 +37,13 @@ final class GuardListViewModel: ObservableObject {
         try await FirebaseManager.shared.usersRef.document(uid).delete()
     }
 
-    func updateGuard(uid: String, fullName: String, badge: String, blockId: String) async throws {
+    func updateGuard(uid: String, fullName: String, badge: String, blockId: String, dutyStartAt: Date) async throws {
         try await FirebaseManager.shared.usersRef.document(uid).updateData([
             "fullName": fullName,
             "badgeNumber": badge,
-            "assignedBlockId": blockId
+            "assignedBlockId": blockId,
+            "shift": ShiftDutySchedule.initialShiftName(for: dutyStartAt),
+            "dutyStartAt": Timestamp(date: dutyStartAt)
         ])
     }
 }
@@ -119,6 +121,24 @@ struct GuardListView: View {
                             .foregroundColor(.secondary)
                     }
 
+                    if let dutyStartAt = g.dutyAnchorDate {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
+                            Label(
+                                dutyStatus.isOnDuty
+                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
+                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))",
+                                systemImage: dutyStatus.isOnDuty ? "checkmark.circle.fill" : "clock.badge"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
+                        }
+                    } else {
+                        Label("Duty schedule not assigned", systemImage: "clock.badge.exclamationmark")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
                     HStack(spacing: 10) {
                         Button {
                             editing = g
@@ -161,12 +181,13 @@ struct GuardListView: View {
         .onDisappear { vm.stopListener() }
         .sheet(item: $editing) { guardUser in
             NavigationStack {
-                GuardEditorView(user: guardUser) { fullName, badge, blockId in
+                GuardEditorView(user: guardUser) { fullName, badge, blockId, dutyStartAt in
                     try await vm.updateGuard(
                         uid: guardUser.uid,
                         fullName: fullName,
                         badge: badge,
-                        blockId: blockId
+                        blockId: blockId,
+                        dutyStartAt: dutyStartAt
                     )
                 }
             }

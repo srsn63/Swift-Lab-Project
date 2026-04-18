@@ -16,6 +16,7 @@ struct Inmate: Identifiable, Codable {
     var releaseDate: Date
 
     var isSolitary: Bool
+    var isDeleted: Bool? = nil
 
     var fullName: String { "\(firstName) \(lastName)" }
 }

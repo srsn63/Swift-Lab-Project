@@ -214,10 +214,27 @@ struct StaffRowView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                     Text("•")
-                    Label(ShiftType(rawValue: staff.shift)?.displayName ?? staff.shift, systemImage: "clock")
+                    Label(ShiftType(rawValue: staff.resolvedShift)?.displayName ?? staff.resolvedShift, systemImage: "clock")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+                if let dutyStartAt = staff.dutyAnchorDate {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
+                        Text(
+                            dutyStatus.isOnDuty
+                                ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
+                                : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
+                        )
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
+                    }
+                } else {
+                    Text("Duty schedule not assigned")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()

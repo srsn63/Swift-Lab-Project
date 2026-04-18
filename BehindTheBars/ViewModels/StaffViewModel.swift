@@ -94,6 +94,7 @@ final class StaffViewModel: ObservableObject {
                 "phoneNumber": staff.phoneNumber,
                 "assignedBlockId": staff.assignedBlockId,
                 "shift": staff.shift,
+                "dutyStartAt": Timestamp(date: staff.dutyStartAt ?? staff.updatedAt),
                 "hireDate": Timestamp(date: staff.hireDate),
                 "isActive": staff.isActive,
                 "notes": staff.notes,
