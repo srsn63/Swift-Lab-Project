@@ -36,6 +36,16 @@ struct GuardDashboardView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
+                    NavigationLink { MedicalRecordsView(accessMode: .guardManage) } label: {
+                        DashboardCard(
+                            title: "Medical",
+                            subtitle: "Assign doctors and track treatment",
+                            icon: "cross.case.fill",
+                            color: .red
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(20)
             }

@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3A1B00012F70000100000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00112F70000100000001 /* AppTheme.swift */; };
+		3A1B00022F70000100000001 /* Staff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00122F70000100000001 /* Staff.swift */; };
+		3A1B00032F70000100000001 /* AdminUserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00132F70000100000001 /* AdminUserManagementViewModel.swift */; };
+		3A1B00042F70000100000001 /* StaffViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00142F70000100000001 /* StaffViewModel.swift */; };
+		3A1B00052F70000100000001 /* MedicalRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00152F70000100000001 /* MedicalRecord.swift */; };
+		3A1B00062F70000100000001 /* MedicalRecordsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00162F70000100000001 /* MedicalRecordsViewModel.swift */; };
+		3A1B00072F70000100000001 /* StaffListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00172F70000100000001 /* StaffListView.swift */; };
+		3A1B00082F70000100000001 /* StaffEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00182F70000100000001 /* StaffEditorView.swift */; };
+		3A1B00092F70000100000001 /* StaffDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B00192F70000100000001 /* StaffDetailView.swift */; };
+		3A1B000A2F70000100000001 /* MedicalRecordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B001A2F70000100000001 /* MedicalRecordsView.swift */; };
+		3A1B000B2F70000100000001 /* MedicalRecordEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1B001B2F70000100000001 /* MedicalRecordEditorView.swift */; };
 		224AAFC52F58AE780029639E /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFC42F58AE780029639E /* Block.swift */; };
 		224AAFC72F58AFAB0029639E /* PendingApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFC62F58AFAB0029639E /* PendingApprovalView.swift */; };
 		224AAFC92F58B0110029639E /* BlockAdminViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224AAFC82F58B0110029639E /* BlockAdminViewModel.swift */; };
@@ -65,6 +76,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3A1B00112F70000100000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		3A1B00122F70000100000001 /* Staff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Staff.swift; sourceTree = "<group>"; };
+		3A1B00132F70000100000001 /* AdminUserManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminUserManagementViewModel.swift; sourceTree = "<group>"; };
+		3A1B00142F70000100000001 /* StaffViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffViewModel.swift; sourceTree = "<group>"; };
+		3A1B00152F70000100000001 /* MedicalRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalRecord.swift; sourceTree = "<group>"; };
+		3A1B00162F70000100000001 /* MedicalRecordsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalRecordsViewModel.swift; sourceTree = "<group>"; };
+		3A1B00172F70000100000001 /* StaffListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffListView.swift; sourceTree = "<group>"; };
+		3A1B00182F70000100000001 /* StaffEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffEditorView.swift; sourceTree = "<group>"; };
+		3A1B00192F70000100000001 /* StaffDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffDetailView.swift; sourceTree = "<group>"; };
+		3A1B001A2F70000100000001 /* MedicalRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalRecordsView.swift; sourceTree = "<group>"; };
+		3A1B001B2F70000100000001 /* MedicalRecordEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalRecordEditorView.swift; sourceTree = "<group>"; };
 		224AAFC42F58AE780029639E /* Block.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Block.swift; sourceTree = "<group>"; };
 		224AAFC62F58AFAB0029639E /* PendingApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingApprovalView.swift; sourceTree = "<group>"; };
 		224AAFC82F58B0110029639E /* BlockAdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockAdminViewModel.swift; sourceTree = "<group>"; };
@@ -134,6 +156,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3A1B00312F70000100000001 /* Staff */ = {
+			isa = PBXGroup;
+			children = (
+				3A1B00172F70000100000001 /* StaffListView.swift */,
+				3A1B00182F70000100000001 /* StaffEditorView.swift */,
+				3A1B00192F70000100000001 /* StaffDetailView.swift */,
+			);
+			path = Staff;
+			sourceTree = "<group>";
+		};
+		3A1B00322F70000100000001 /* Medical */ = {
+			isa = PBXGroup;
+			children = (
+				3A1B001A2F70000100000001 /* MedicalRecordsView.swift */,
+				3A1B001B2F70000100000001 /* MedicalRecordEditorView.swift */,
+			);
+			path = Medical;
+			sourceTree = "<group>";
+		};
 		224AAFCA2F58B0460029639E /* Admin */ = {
 			isa = PBXGroup;
 			children = (
@@ -209,10 +250,12 @@
 			children = (
 				22DB998B2F55028900053214 /* User.swift */,
 				22DB998D2F5502C100053214 /* Inmate.swift */,
+				3A1B00122F70000100000001 /* Staff.swift */,
 				22F6B29F2F55A784007AC690 /* Cell.swift */,
 				22F6B2A92F55BE1F007AC690 /* PenalCode.swift */,
 				22F6B2AD2F55BEA7007AC690 /* Incident.swift */,
 				224AAFC42F58AE780029639E /* Block.swift */,
+				3A1B00152F70000100000001 /* MedicalRecord.swift */,
 				224AAFD72F58CD0A0029639E /* IncidentFormState.swift */,
 			);
 			path = Models;
@@ -222,12 +265,15 @@
 			isa = PBXGroup;
 			children = (
 				22DB99912F5503A600053214 /* AuthViewModel.swift */,
+				3A1B00132F70000100000001 /* AdminUserManagementViewModel.swift */,
 				224AAFE32F59F83D0029639E /* IncidentDetailViewModel.swift */,
 				22F6B2A12F55A7C7007AC690 /* InmateDirectoryViewModel.swift */,
 				22F6B2AF2F55BEE3007AC690 /* IncidentReportViewModel.swift */,
 				22F6B2B52F55F8CE007AC690 /* InmateSelectionViewModel.swift */,
 				226157892F56DC8A009E396E /* InmateCRUDViewModel.swift */,
+				3A1B00162F70000100000001 /* MedicalRecordsViewModel.swift */,
 				2261578D2F56DD91009E396E /* ProfileViewModel.swift */,
+				3A1B00142F70000100000001 /* StaffViewModel.swift */,
 				226157922F56DE01009E396E /* GuardManagementViewModel.swift */,
 				224AAFC82F58B0110029639E /* BlockAdminViewModel.swift */,
 				224AAFE12F5981140029639E /* BlocksDirectoryViewModel.swift */,
@@ -240,9 +286,11 @@
 			children = (
 				224AAFCA2F58B0460029639E /* Admin */,
 				226157942F56DE41009E396E /* Users */,
+				3A1B00322F70000100000001 /* Medical */,
 				2261578F2F56DDB7009E396E /* Profile */,
 				22DB99872F54FE4C00053214 /* Incidents */,
 				22DB99862F54FE3200053214 /* Inmates */,
+				3A1B00312F70000100000001 /* Staff */,
 				22DB99852F54FE0B00053214 /* Dashboards */,
 				22DB99832F54FDEA00053214 /* Authentication */,
 			);
@@ -297,6 +345,7 @@
 		22DB99882F54FE6B00053214 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				3A1B00112F70000100000001 /* AppTheme.swift */,
 				226157992F56E92F009E396E /* Toast.swift */,
 			);
 			path = Components;
@@ -401,6 +450,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A1B00012F70000100000001 /* AppTheme.swift in Sources */,
+				3A1B00032F70000100000001 /* AdminUserManagementViewModel.swift in Sources */,
+				3A1B00052F70000100000001 /* MedicalRecord.swift in Sources */,
+				3A1B000B2F70000100000001 /* MedicalRecordEditorView.swift in Sources */,
+				3A1B000A2F70000100000001 /* MedicalRecordsView.swift in Sources */,
+				3A1B00062F70000100000001 /* MedicalRecordsViewModel.swift in Sources */,
+				3A1B00022F70000100000001 /* Staff.swift in Sources */,
+				3A1B00092F70000100000001 /* StaffDetailView.swift in Sources */,
+				3A1B00082F70000100000001 /* StaffEditorView.swift in Sources */,
+				3A1B00072F70000100000001 /* StaffListView.swift in Sources */,
+				3A1B00042F70000100000001 /* StaffViewModel.swift in Sources */,
 				22F6B2B42F55BF5B007AC690 /* PenalCodeReferenceView.swift in Sources */,
 				226157912F56DDD0009E396E /* ProfileView.swift in Sources */,
 				22F6B2A22F55A7C7007AC690 /* InmateDirectoryViewModel.swift in Sources */,
