@@ -47,6 +47,16 @@ struct WardenDashboardView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink { MedicalRecordsView(accessMode: .wardenReadOnly) } label: {
+                        DashboardCard(
+                            title: "Medical Status",
+                            subtitle: "Review status updates by date",
+                            icon: "waveform.path.ecg",
+                            color: .red
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     NavigationLink { StaffListView() } label: {
                         DashboardCard(
                             title: "Staff",
