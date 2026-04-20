@@ -2,7 +2,13 @@ import SwiftUI
 
 struct IncidentDetailView: View {
     let incident: Incident
+    let viewerRole: String?
     @StateObject private var vm = IncidentDetailViewModel()
+
+    init(incident: Incident, viewerRole: String? = nil) {
+        self.incident = incident
+        self.viewerRole = viewerRole
+    }
 
     var body: some View {
         List {
@@ -80,7 +86,7 @@ struct IncidentDetailView: View {
                             }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(i.fullName).font(.subheadline.bold())
-                                Text("Cell: \(i.cellId) • \(i.securityLevel)")
+                                Text("Cell: \(i.cellId) / \(i.securityLevel)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -97,7 +103,7 @@ struct IncidentDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Incident")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.loadAll(for: incident) }
+        .task { await vm.loadAll(for: incident, viewerRole: viewerRole) }
     }
 
     private func detailRow(icon: String, label: String, value: String) -> some View {

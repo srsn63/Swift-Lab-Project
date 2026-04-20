@@ -77,8 +77,7 @@ final class AdminUserManagementViewModel: ObservableObject {
     }
 
     func blockName(for blockId: String?) -> String {
-        guard let blockId, !blockId.isEmpty else { return "Unassigned" }
-        return blocks.first(where: { $0.id == blockId })?.name ?? blockId
+        BlockAssignment.displayName(for: blockId, blocks: blocks)
     }
 
     func displayName(for user: User) -> String {
@@ -108,6 +107,7 @@ final class AdminUserManagementViewModel: ObservableObject {
         approved: Bool,
         status: String
     ) async throws {
+        let normalizedBlockId = BlockAssignment.normalized(assignedBlockId)
         var payload: [String: Any] = [
             "role": role,
             "fullName": fullName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -117,7 +117,7 @@ final class AdminUserManagementViewModel: ObservableObject {
         ]
 
         if role == "guard" {
-            payload["assignedBlockId"] = assignedBlockId
+            payload["assignedBlockId"] = normalizedBlockId
             if let dutyStartAt {
                 payload["dutyStartAt"] = Timestamp(date: dutyStartAt)
                 payload["shift"] = ShiftDutySchedule.initialShiftName(for: dutyStartAt)

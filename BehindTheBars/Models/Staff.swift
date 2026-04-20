@@ -92,6 +92,25 @@ enum ShiftDutySchedule {
         }
     }
 
+    static func anchorHour(for shift: ShiftType) -> Int {
+        switch shift {
+        case .morning:
+            return 6
+        case .day:
+            return 14
+        case .night:
+            return 22
+        }
+    }
+
+    static func anchorDate(for shift: ShiftType, on baseDate: Date, calendar: Calendar = .current) -> Date {
+        var components = calendar.dateComponents([.year, .month, .day], from: baseDate)
+        components.hour = anchorHour(for: shift)
+        components.minute = 0
+        components.second = 0
+        return calendar.date(from: components) ?? baseDate
+    }
+
     static func suggestedAnchorDate(for storedShift: String?, baseDate: Date = Date(), calendar: Calendar = .current) -> Date {
         let shift = normalizedShiftName(storedShift, anchorDate: nil, fallback: "day")
         var components = calendar.dateComponents([.year, .month, .day], from: baseDate)
@@ -151,22 +170,6 @@ struct Staff: Identifiable, Codable {
         ShiftDutySchedule.normalizedShiftName(shift, anchorDate: dutyAnchorDate, fallback: "morning")
     }
 
-    enum CodingKeys: String, CodingKey {
-        case fullName
-        case staffType
-        case phoneNumber
-        case assignedBlockId
-        case shift
-        case hireDate
-        case isActive
-        case notes
-        case createdBy
-        case createdAt
-        case updatedAt
-        case dutyStartAt
-        case isDeleted
-    }
-
     init(
         id: String? = nil,
         fullName: String,
@@ -199,23 +202,46 @@ struct Staff: Identifiable, Codable {
         self.isDeleted = isDeleted
     }
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        _id = DocumentID(wrappedValue: nil)
+    static func from(document: QueryDocumentSnapshot) -> Staff? {
+        from(documentID: document.documentID, data: document.data())
+    }
 
-        fullName = try container.decodeIfPresent(String.self, forKey: .fullName) ?? ""
-        staffType = try container.decodeIfPresent(String.self, forKey: .staffType) ?? StaffType.other.rawValue
-        phoneNumber = try container.decodeIfPresent(String.self, forKey: .phoneNumber) ?? ""
-        assignedBlockId = try container.decodeIfPresent(String.self, forKey: .assignedBlockId) ?? ""
-        shift = try container.decodeIfPresent(String.self, forKey: .shift) ?? ShiftType.morning.rawValue
-        hireDate = try container.decodeIfPresent(Date.self, forKey: .hireDate) ?? Date()
-        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
-        notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
-        createdBy = try container.decodeIfPresent(String.self, forKey: .createdBy) ?? ""
-        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
-        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
-        dutyStartAt = try container.decodeIfPresent(Date.self, forKey: .dutyStartAt)
-        isDeleted = try container.decodeIfPresent(Bool.self, forKey: .isDeleted)
+    static func from(document: DocumentSnapshot) -> Staff? {
+        guard let data = document.data() else { return nil }
+        return from(documentID: document.documentID, data: data)
+    }
+
+    private static func from(documentID: String, data: [String: Any]) -> Staff {
+        let createdAt = dateValue(for: data["createdAt"]) ?? Date()
+        let updatedAt = dateValue(for: data["updatedAt"]) ?? createdAt
+
+        return Staff(
+            id: documentID,
+            fullName: data["fullName"] as? String ?? "",
+            staffType: data["staffType"] as? String ?? StaffType.other.rawValue,
+            phoneNumber: data["phoneNumber"] as? String ?? "",
+            assignedBlockId: BlockAssignment.normalized(data["assignedBlockId"] as? String),
+            shift: data["shift"] as? String ?? ShiftType.morning.rawValue,
+            hireDate: dateValue(for: data["hireDate"]) ?? Date(),
+            isActive: data["isActive"] as? Bool ?? true,
+            notes: data["notes"] as? String ?? "",
+            createdBy: data["createdBy"] as? String ?? "",
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            dutyStartAt: dateValue(for: data["dutyStartAt"]),
+            isDeleted: data["isDeleted"] as? Bool
+        )
+    }
+
+    private static func dateValue(for rawValue: Any?) -> Date? {
+        switch rawValue {
+        case let timestamp as Timestamp:
+            return timestamp.dateValue()
+        case let date as Date:
+            return date
+        default:
+            return nil
+        }
     }
 }
 

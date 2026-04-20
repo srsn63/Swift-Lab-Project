@@ -136,9 +136,6 @@ struct AdminUserManagementView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let badge = user.badgeNumber, !badge.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
                                 Label(badge, systemImage: "number")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -334,6 +331,7 @@ private struct AdminUserEditorView: View {
                 Section {
                     Menu {
                         Button("Unassigned") { assignedBlockId = "" }
+                        Button("All Blocks") { assignedBlockId = BlockAssignment.allBlocksId }
                         ForEach(blocks) { block in
                             Button(block.name) { assignedBlockId = block.id ?? "" }
                         }
@@ -413,7 +411,7 @@ private struct AdminUserEditorView: View {
             role = user.role
             fullName = user.fullName ?? ""
             badgeNumber = user.badgeNumber ?? ""
-            assignedBlockId = user.assignedBlockId ?? ""
+            assignedBlockId = BlockAssignment.normalized(user.assignedBlockId)
             dutyStartAt = user.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: user.shift)
             approved = user.approved
             status = user.status
@@ -421,8 +419,7 @@ private struct AdminUserEditorView: View {
     }
 
     private var currentBlockName: String {
-        if assignedBlockId.isEmpty { return "Unassigned" }
-        return blocks.first(where: { $0.id == assignedBlockId })?.name ?? assignedBlockId
+        BlockAssignment.displayName(for: assignedBlockId, blocks: blocks)
     }
 
     private func save() {

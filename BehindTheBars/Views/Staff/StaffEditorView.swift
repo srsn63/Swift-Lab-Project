@@ -13,6 +13,7 @@ struct StaffEditorView: View {
     @State private var staffType: StaffType = .other
     @State private var phoneNumber = ""
     @State private var assignedBlockId = ""
+    @State private var selectedShift: ShiftType = .morning
     @State private var dutyStartAt = Date()
     @State private var hireDate = Date()
     @State private var isActive = true
@@ -26,7 +27,7 @@ struct StaffEditorView: View {
             Section {
                 AppHeroHeader(
                     title: isEditing ? "Edit Staff Member" : "Add Staff Member",
-                    subtitle: "Create clean staff profiles with duty anchors, shift grouping, and block assignments.",
+                    subtitle: "Create polished staff profiles with explicit shift groups, duty anchors, and prison-wide block scope when needed.",
                     icon: staffType.icon,
                     tint: staffType.color,
                     badgeText: staffType.displayName
@@ -50,10 +51,13 @@ struct StaffEditorView: View {
                         .keyboardType(.phonePad)
                 }
 
-                Picker(selection: $staffType) {
+                Menu {
                     ForEach(StaffType.allCases) { type in
-                        Label(type.displayName, systemImage: type.icon)
-                            .tag(type)
+                        Button {
+                            staffType = type
+                        } label: {
+                            Label(type.displayName, systemImage: type.icon)
+                        }
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -61,6 +65,12 @@ struct StaffEditorView: View {
                             .foregroundColor(AppTheme.accent)
                             .frame(width: 20)
                         Text("Staff Type")
+                        Spacer()
+                        Text(staffType.displayName)
+                            .foregroundStyle(AppTheme.inkMuted)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.inkMuted)
                     }
                 }
 
@@ -82,6 +92,7 @@ struct StaffEditorView: View {
             Section {
                 Menu {
                     Button("Unassigned") { assignedBlockId = "" }
+                    Button("All Blocks") { assignedBlockId = BlockAssignment.allBlocksId }
                     ForEach(vm.blocks) { block in
                         Button(block.name) { assignedBlockId = block.id ?? "" }
                     }
@@ -100,27 +111,50 @@ struct StaffEditorView: View {
                     }
                 }
 
-                DatePicker(selection: $dutyStartAt, displayedComponents: [.date, .hourAndMinute]) {
+                Menu {
+                    ForEach(ShiftType.allCases) { shift in
+                        Button {
+                            selectedShift = shift
+                        } label: {
+                            Label(shift.displayName, systemImage: shift.icon)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: selectedShift.icon)
+                            .foregroundColor(AppTheme.accent)
+                            .frame(width: 20)
+                        Text("Shift Group")
+                        Spacer()
+                        Text(selectedShift.displayName)
+                            .foregroundStyle(AppTheme.inkMuted)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.inkMuted)
+                    }
+                }
+
+                DatePicker(selection: $dutyStartAt, displayedComponents: .date) {
                     HStack(spacing: 12) {
                         Image(systemName: "clock.badge.checkmark")
                             .foregroundColor(AppTheme.accent)
                             .frame(width: 20)
-                        Text("First Duty Start")
+                        Text("First Duty Date")
                     }
                 }
 
                 HStack(spacing: 12) {
-                    Image(systemName: derivedShift.icon)
+                    Image(systemName: "clock")
                         .foregroundColor(AppTheme.accent)
                         .frame(width: 20)
-                    Text("Shift Group")
+                    Text("First Duty Start")
                     Spacer()
-                    Text(derivedShift.displayName)
+                    Text(snappedDutyStartAt.formatted(date: .abbreviated, time: .shortened))
                         .foregroundStyle(AppTheme.inkMuted)
                 }
 
                 AppMessageBanner(
-                    text: "This duty start drives the repeating 8-hour work and 8-hour rest cycle in real time.",
+                    text: "The shift group locks the anchor time to 06:00, 14:00, or 22:00 on the selected date for the repeating 8-hour duty cycle.",
                     tint: AppTheme.accent,
                     icon: "clock.badge.checkmark"
                 )
@@ -184,15 +218,26 @@ struct StaffEditorView: View {
                 Task { await vm.loadBlocks() }
             }
         }
+        .onChange(of: selectedShift) { _ in
+            let snapped = snappedDutyStartAt
+            if dutyStartAt != snapped {
+                dutyStartAt = snapped
+            }
+        }
+        .onChange(of: dutyStartAt) { _ in
+            let snapped = snappedDutyStartAt
+            if dutyStartAt != snapped {
+                dutyStartAt = snapped
+            }
+        }
     }
 
     private var currentBlockName: String {
-        if assignedBlockId.isEmpty { return "Unassigned" }
-        return vm.blocks.first(where: { $0.id == assignedBlockId })?.name ?? "Unknown"
+        BlockAssignment.displayName(for: assignedBlockId, blocks: vm.blocks)
     }
 
-    private var derivedShift: ShiftType {
-        ShiftType(rawValue: ShiftDutySchedule.initialShiftName(for: dutyStartAt)) ?? .morning
+    private var snappedDutyStartAt: Date {
+        ShiftDutySchedule.anchorDate(for: selectedShift, on: dutyStartAt)
     }
 
     private func loadExisting() {
@@ -200,11 +245,18 @@ struct StaffEditorView: View {
             fullName = existing.fullName
             staffType = StaffType(rawValue: existing.staffType) ?? .other
             phoneNumber = existing.phoneNumber
-            assignedBlockId = existing.assignedBlockId
-            dutyStartAt = existing.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: existing.shift)
+            assignedBlockId = BlockAssignment.normalized(existing.assignedBlockId)
+            selectedShift = ShiftType(rawValue: existing.resolvedShift) ?? .morning
+            dutyStartAt = ShiftDutySchedule.anchorDate(
+                for: selectedShift,
+                on: existing.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: existing.shift)
+            )
             hireDate = existing.hireDate
             isActive = existing.isActive
             notes = existing.notes
+        } else {
+            selectedShift = .morning
+            dutyStartAt = ShiftDutySchedule.anchorDate(for: selectedShift, on: dutyStartAt)
         }
     }
 
@@ -224,15 +276,15 @@ struct StaffEditorView: View {
                     fullName: trimmedName,
                     staffType: staffType.rawValue,
                     phoneNumber: phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines),
-                    assignedBlockId: assignedBlockId,
-                    shift: derivedShift.rawValue,
+                    assignedBlockId: BlockAssignment.normalized(assignedBlockId),
+                    shift: selectedShift.rawValue,
                     hireDate: hireDate,
                     isActive: isActive,
                     notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
                     createdBy: existing?.createdBy ?? (authVM.currentUser?.uid ?? ""),
                     createdAt: existing?.createdAt ?? now,
                     updatedAt: now,
-                    dutyStartAt: dutyStartAt
+                    dutyStartAt: snappedDutyStartAt
                 )
                 try await onSave(staff)
                 dismiss()

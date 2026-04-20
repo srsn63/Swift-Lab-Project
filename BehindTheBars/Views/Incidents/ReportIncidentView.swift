@@ -31,13 +31,15 @@ struct ReportIncidentView: View {
 
     private var guardBlockFilter: String? {
         guard let u = authVM.currentUser else { return nil }
-        if u.role == "guard" { return u.assignedBlockId }
+        if u.role == "guard" {
+            return BlockAssignment.specificBlockId(u.assignedBlockId)
+        }
         return nil
     }
 
     private func openSelector() {
         if authVM.currentUser?.role == "guard" {
-            if (authVM.currentUser?.assignedBlockId ?? "").isEmpty {
+            if BlockAssignment.isUnassigned(authVM.currentUser?.assignedBlockId) {
                 vm.errorMessage = "You are not assigned to a block."
                 return
             }

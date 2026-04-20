@@ -9,7 +9,7 @@ final class IncidentDetailViewModel: ObservableObject {
     @Published var inmates: [Inmate] = []
     @Published var errorMessage: String?
 
-    func loadAll(for incident: Incident) async {
+    func loadAll(for incident: Incident, viewerRole: String? = nil) async {
         errorMessage = nil
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadBlockName(blockId: incident.blockId) }

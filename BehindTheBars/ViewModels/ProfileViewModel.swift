@@ -24,7 +24,7 @@ final class ProfileViewModel: ObservableObject {
         ]
 
         if includeAssignedBlockId {
-            data["assignedBlockId"] = assignedBlockId.trimmingCharacters(in: .whitespacesAndNewlines)
+            data["assignedBlockId"] = BlockAssignment.normalized(assignedBlockId)
         }
 
         try await FirebaseManager.shared.usersRef

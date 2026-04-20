@@ -3,6 +3,7 @@ import SwiftUI
 struct InmateSelectionView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var vm: InmateSelectionViewModel
+    @StateObject private var blocksVM = BlocksDirectoryViewModel()
 
     @Binding var selectedInmates: [Inmate]
 
@@ -14,61 +15,72 @@ struct InmateSelectionView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    AppHeroHeader(
+                        title: "Select Inmates",
+                        subtitle: "Build the incident roster with the same consistent inmate cards and placement cues used elsewhere in the app.",
+                        icon: "person.badge.plus",
+                        tint: AppTheme.accent,
+                        badgeText: "\(selectedInmates.count)"
+                    )
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
                 if let err = vm.errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppTheme.danger)
-                        Text(err)
-                            .foregroundStyle(AppTheme.danger)
-                            .font(.footnote)
+                    Section {
+                        AppMessageBanner(text: err, tint: AppTheme.danger)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
 
                 if !selectedInmates.isEmpty {
                     Section {
-                        Text("\(selectedInmates.count) inmate\(selectedInmates.count == 1 ? "" : "s") selected")
-                            .font(.subheadline)
+                        AppMessageBanner(
+                            text: "\(selectedInmates.count) inmate\(selectedInmates.count == 1 ? "" : "s") selected for this report.",
+                            tint: AppTheme.accent,
+                            icon: "checkmark.circle.fill"
+                        )
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
+
+                if vm.filteredInmates.isEmpty && vm.errorMessage == nil {
+                    Section {
+                        AppEmptyStateCard(
+                            title: "No inmates available",
+                            subtitle: "The inmate roster is empty for the current filter.",
+                            icon: "person.crop.rectangle.stack",
+                            tint: AppTheme.accent
+                        )
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                } else {
+                    Section {
+                        ForEach(vm.filteredInmates) { inmate in
+                            SelectableInmateRowCard(
+                                inmate: inmate,
+                                blockName: blockName(for: inmate.blockId),
+                                isSelected: selectedInmates.contains(where: { $0.id == inmate.id })
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture { toggleSelection(inmate) }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+                    } header: {
+                        Label("Available Inmates", systemImage: "list.bullet")
+                            .font(.caption.bold())
                             .foregroundColor(AppTheme.accent)
                     }
                 }
-
-                ForEach(vm.filteredInmates) { inmate in
-                    let isSelected = selectedInmates.contains(where: { $0.id == inmate.id })
-
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle()
-                                .fill(isSelected ? AppTheme.accent.opacity(0.15) : Color(UIColor.tertiarySystemFill))
-                                .frame(width: 40, height: 40)
-                            Text(String(inmate.firstName.prefix(1)))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(isSelected ? AppTheme.accent : .secondary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(inmate.fullName)
-                                .font(.subheadline.bold())
-                            HStack(spacing: 4) {
-                                Text("Block: \(inmate.blockId)")
-                                Text("•")
-                                Text("Cell: \(inmate.cellId)")
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.title3)
-                            .foregroundColor(isSelected ? AppTheme.accent : Color(UIColor.tertiaryLabel))
-                    }
-                    .padding(.vertical, 2)
-                    .contentShape(Rectangle())
-                    .onTapGesture { toggleSelection(inmate) }
-                }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(AppScreenBackground())
             .searchable(text: $vm.searchText, prompt: "Search inmates")
             .navigationTitle("Select Inmates")
             .navigationBarTitleDisplayMode(.inline)
@@ -78,6 +90,9 @@ struct InmateSelectionView: View {
                         .fontWeight(.semibold)
                 }
             }
+            .task {
+                await blocksVM.load()
+            }
         }
     }
 
@@ -86,6 +101,55 @@ struct InmateSelectionView: View {
             selectedInmates.remove(at: index)
         } else {
             selectedInmates.append(inmate)
+        }
+    }
+
+    private func blockName(for id: String) -> String {
+        BlockAssignment.displayName(for: id, blocks: blocksVM.blocks)
+    }
+}
+
+private struct SelectableInmateRowCard: View {
+    let inmate: Inmate
+    let blockName: String
+    let isSelected: Bool
+
+    private var tint: Color {
+        isSelected ? AppTheme.accent : AppTheme.securityColor(inmate.securityLevel)
+    }
+
+    var body: some View {
+        AppSurfaceCard(tint: tint, padding: 16) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(tint.opacity(0.12))
+                        .frame(width: 46, height: 46)
+                    Text(String(inmate.firstName.prefix(1)) + String(inmate.lastName.prefix(1)))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(tint)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(inmate.fullName)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(AppTheme.ink)
+
+                    HStack(spacing: 10) {
+                        Label(blockName, systemImage: "building.2")
+                            .lineLimit(1)
+                        Label(inmate.cellId, systemImage: "door.left.hand.closed")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.inkMuted)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isSelected ? AppTheme.accent : AppTheme.inkMuted)
+            }
         }
     }
 }

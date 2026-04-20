@@ -66,6 +66,7 @@ struct GuardEditorView: View {
 
                 Menu {
                     Button("Unassigned") { assignedBlockId = "" }
+                    Button("All Blocks") { assignedBlockId = BlockAssignment.allBlocksId }
                     ForEach(blocks) { block in
                         Button(block.name) { assignedBlockId = block.id ?? "" }
                     }
@@ -126,15 +127,14 @@ struct GuardEditorView: View {
         .onAppear {
             fullName = user.fullName ?? ""
             badgeNumber = user.badgeNumber ?? ""
-            assignedBlockId = user.assignedBlockId ?? ""
+            assignedBlockId = BlockAssignment.normalized(user.assignedBlockId)
             dutyStartAt = user.dutyAnchorDate ?? ShiftDutySchedule.suggestedAnchorDate(for: user.shift)
             Task { await loadBlocks() }
         }
     }
 
     private var currentBlockName: String {
-        if assignedBlockId.isEmpty { return "Unassigned" }
-        return blocks.first(where: { $0.id == assignedBlockId })?.name ?? "Unknown"
+        BlockAssignment.displayName(for: assignedBlockId, blocks: blocks)
     }
 
     private func loadBlocks() async {

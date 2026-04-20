@@ -28,6 +28,18 @@ struct InmateAdmissionView: View {
         NavigationStack {
             List {
                 Section {
+                    AppHeroHeader(
+                        title: "Admit Inmate",
+                        subtitle: "Create a clean intake record with placement, sentence details, and the same card-based styling used across the app.",
+                        icon: "person.crop.rectangle.stack.fill",
+                        tint: AppTheme.accent,
+                        badgeText: "New Intake"
+                    )
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+                Section {
                     HStack(spacing: 12) {
                         Image(systemName: "person.fill")
                             .foregroundColor(AppTheme.accent)
@@ -61,16 +73,16 @@ struct InmateAdmissionView: View {
                         .font(.caption.bold())
                         .foregroundColor(AppTheme.accent)
                 }
+                .listRowBackground(AppTheme.surfaceElevated)
 
                 Section {
                     DatePicker("Admission date", selection: $admissionDate, displayedComponents: .date)
                     Stepper("Sentence: \(sentenceMonths) months", value: $sentenceMonths, in: 1...600)
 
-                    let release = Calendar.current.date(byAdding: .month, value: sentenceMonths, to: admissionDate) ?? admissionDate
                     HStack {
                         Text("Release date")
                         Spacer()
-                        Text(release.formatted(date: .abbreviated, time: .omitted))
+                        Text(releaseDate.formatted(date: .abbreviated, time: .omitted))
                             .foregroundStyle(.secondary)
                     }
                 } header: {
@@ -78,42 +90,51 @@ struct InmateAdmissionView: View {
                         .font(.caption.bold())
                         .foregroundColor(AppTheme.accent)
                 }
+                .listRowBackground(AppTheme.surfaceElevated)
 
                 Section {
                     Picker("Block", selection: $selectedBlockId) {
                         Text("Select").tag("")
-                        ForEach(blocks) { b in
-                            Text(b.name).tag(b.id ?? "")
+                        ForEach(blocks) { block in
+                            Text(block.name).tag(block.id ?? "")
                         }
                     }
 
                     Picker("Cell", selection: $selectedCellId) {
                         Text("Select").tag("")
-                        ForEach(availableCells) { c in
-                            Text("\(c.cellCode)  (\(c.occupancy)/\(c.capacity))")
-                                .tag(c.id ?? c.cellCode)
+                        ForEach(availableCells) { cell in
+                            Text("\(cell.cellCode) (\(cell.occupancy)/\(cell.capacity))")
+                                .tag(cell.id ?? cell.cellCode)
                         }
                     }
                     .disabled(selectedBlockId.isEmpty)
+
+                    if !selectedBlockId.isEmpty {
+                        AppMessageBanner(
+                            text: selectedCellId.isEmpty
+                                ? "Choose an available cell in \(selectedBlockName)."
+                                : "Placement set to \(selectedBlockName), cell \(selectedCellId).",
+                            tint: AppTheme.accent,
+                            icon: "building.2"
+                        )
+                    }
                 } header: {
                     Label("Placement", systemImage: "building.2")
                         .font(.caption.bold())
                         .foregroundColor(AppTheme.accent)
                 }
+                .listRowBackground(AppTheme.surfaceElevated)
 
                 if let errorMessage {
                     Section {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(AppTheme.danger)
-                            Text(errorMessage)
-                                .foregroundStyle(AppTheme.danger)
-                                .font(.footnote)
-                        }
+                        AppMessageBanner(text: errorMessage, tint: AppTheme.danger)
                     }
+                    .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(AppScreenBackground())
             .navigationTitle("Admit Inmate")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -127,8 +148,6 @@ struct InmateAdmissionView: View {
                 }
             }
             .task { await loadBlocks() }
-
-            // iOS 16 signature: ONLY newValue
             .onChange(of: selectedBlockId) { newValue in
                 selectedCellId = ""
                 Task {
@@ -149,6 +168,14 @@ struct InmateAdmissionView: View {
         selectedCellId.isEmpty
     }
 
+    private var selectedBlockName: String {
+        blocks.first(where: { $0.id == selectedBlockId })?.name ?? selectedBlockId
+    }
+
+    private var releaseDate: Date {
+        Calendar.current.date(byAdding: .month, value: sentenceMonths, to: admissionDate) ?? admissionDate
+    }
+
     private func create() {
         errorMessage = nil
 
@@ -163,8 +190,6 @@ struct InmateAdmissionView: View {
                     return
                 }
 
-                let release = Calendar.current.date(byAdding: .month, value: sentenceMonths, to: admissionDate) ?? admissionDate
-
                 let inmate = Inmate(
                     id: nil,
                     firstName: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -174,7 +199,7 @@ struct InmateAdmissionView: View {
                     cellId: selectedCellId,
                     admissionDate: admissionDate,
                     sentenceMonths: sentenceMonths,
-                    releaseDate: release,
+                    releaseDate: releaseDate,
                     isSolitary: isSolitary
                 )
 

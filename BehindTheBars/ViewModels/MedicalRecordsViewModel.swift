@@ -37,18 +37,23 @@ final class MedicalRecordsViewModel: ObservableObject {
     func inmateSelectionMessage(for user: User) -> String? {
         guard user.role == "guard" else { return nil }
 
-        guard let blockId = user.assignedBlockId, !blockId.isEmpty else {
+        let assignedBlockId = BlockAssignment.normalized(user.assignedBlockId)
+
+        guard !assignedBlockId.isEmpty else {
             return "You need a block assignment before creating a medical record."
         }
 
         guard availableInmates.isEmpty else { return nil }
-        return "No inmates are available in \(blockName(for: blockId))."
+        if BlockAssignment.isAllBlocks(assignedBlockId) {
+            return "No inmates are currently available in the prison."
+        }
+        return "No inmates are available in \(blockName(for: assignedBlockId))."
     }
 
     func doctorSelectionMessage(for user: User) -> String? {
         guard user.role == "guard" else { return nil }
 
-        guard user.assignedBlockId?.isEmpty == false else {
+        guard !BlockAssignment.isUnassigned(user.assignedBlockId) else {
             return "You need a block assignment before selecting a doctor."
         }
 
@@ -57,8 +62,7 @@ final class MedicalRecordsViewModel: ObservableObject {
     }
 
     func doctorLabel(for doctor: Staff) -> String {
-        let blockLabel = blockName(for: doctor.assignedBlockId)
-        return doctor.assignedBlockId.isEmpty ? "\(doctor.fullName) - Unassigned" : "\(doctor.fullName) - \(blockLabel)"
+        "\(doctor.fullName) - \(blockName(for: doctor.assignedBlockId))"
     }
 
     func startListener(for user: User) {
@@ -68,12 +72,17 @@ final class MedicalRecordsViewModel: ObservableObject {
         var query: Query = FirebaseManager.shared.medicalRecordsRef
 
         if user.role == "guard" {
-            guard let blockId = user.assignedBlockId, !blockId.isEmpty else {
+            let assignedBlockId = BlockAssignment.normalized(user.assignedBlockId)
+
+            guard !assignedBlockId.isEmpty else {
                 records = []
                 errorMessage = MedicalRecordsError.missingGuardBlock.errorDescription
                 return
             }
-            query = query.whereField("blockId", isEqualTo: blockId)
+
+            if let specificBlockId = BlockAssignment.specificBlockId(assignedBlockId) {
+                query = query.whereField("blockId", isEqualTo: specificBlockId)
+            }
         }
 
         listener = query.addSnapshotListener { [weak self] snap, err in
@@ -120,7 +129,9 @@ final class MedicalRecordsViewModel: ObservableObject {
             return
         }
 
-        guard let blockId = user.assignedBlockId, !blockId.isEmpty else {
+        let assignedBlockId = BlockAssignment.normalized(user.assignedBlockId)
+
+        guard !assignedBlockId.isEmpty else {
             availableInmates = []
             availableDoctors = []
             errorMessage = MedicalRecordsError.missingGuardBlock.errorDescription
@@ -128,19 +139,26 @@ final class MedicalRecordsViewModel: ObservableObject {
         }
 
         do {
-            let inmateSnapshot = try await FirebaseManager.shared.inmatesRef
-                .whereField("blockId", isEqualTo: blockId)
-                .getDocuments()
+            let inmateSnapshot: QuerySnapshot
+            if let specificBlockId = BlockAssignment.specificBlockId(assignedBlockId) {
+                inmateSnapshot = try await FirebaseManager.shared.inmatesRef
+                    .whereField("blockId", isEqualTo: specificBlockId)
+                    .getDocuments()
+            } else {
+                inmateSnapshot = try await FirebaseManager.shared.inmatesRef.getDocuments()
+            }
             let doctorSnapshot = try await FirebaseManager.shared.staffRef
                 .whereField("staffType", isEqualTo: StaffType.doctor.rawValue)
                 .getDocuments()
 
             let inmates = inmateSnapshot.documents.compactMap { try? $0.data(as: Inmate.self) }
-            let doctors = doctorSnapshot.documents.compactMap { try? $0.data(as: Staff.self) }
+            let doctors = doctorSnapshot.documents.compactMap(Staff.from(document:))
 
-            self.availableInmates = inmates.sorted { $0.fullName < $1.fullName }
+            self.availableInmates = inmates
+                .filter { $0.isDeleted != true }
+                .sorted { $0.fullName < $1.fullName }
             self.availableDoctors = doctors
-                .filter(\.isActive)
+                .filter { $0.isActive && $0.isDeleted != true }
                 .sorted { lhs, rhs in
                     if lhs.fullName == rhs.fullName {
                         return lhs.assignedBlockId < rhs.assignedBlockId
@@ -173,8 +191,7 @@ final class MedicalRecordsViewModel: ObservableObject {
     }
 
     func blockName(for blockId: String) -> String {
-        if blockId.isEmpty { return "Unassigned" }
-        return blocks.first(where: { $0.id == blockId })?.name ?? blockId
+        BlockAssignment.displayName(for: blockId, blocks: blocks)
     }
 
     private func validateWritable(record: MedicalRecord, currentUser: User) throws {
@@ -182,11 +199,14 @@ final class MedicalRecordsViewModel: ObservableObject {
             throw MedicalRecordsError.readOnlyRole
         }
 
-        guard let assignedBlockId = currentUser.assignedBlockId, !assignedBlockId.isEmpty else {
+        let assignedBlockId = BlockAssignment.normalized(currentUser.assignedBlockId)
+
+        guard !assignedBlockId.isEmpty else {
             throw MedicalRecordsError.missingGuardBlock
         }
 
-        guard record.blockId == assignedBlockId else {
+        if let specificBlockId = BlockAssignment.specificBlockId(assignedBlockId),
+           record.blockId != specificBlockId {
             throw MedicalRecordsError.invalidBlockAccess
         }
 

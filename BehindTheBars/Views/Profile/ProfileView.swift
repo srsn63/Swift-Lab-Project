@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var vm = ProfileViewModel()
+    @StateObject private var blocksVM = BlocksDirectoryViewModel()
 
     @State private var showToast = false
     @State private var toastText = ""
@@ -72,7 +73,7 @@ struct ProfileView: View {
                             Image(systemName: "building.2")
                                 .foregroundColor(AppTheme.accent)
                                 .frame(width: 20)
-                            Text("Block: \(authVM.currentUser?.assignedBlockId ?? "-")")
+                            Text("Block: \(assignedBlockLabel)")
                         }
                     }
 
@@ -109,8 +110,9 @@ struct ProfileView: View {
                             Image(systemName: "building.2")
                                 .foregroundColor(.secondary)
                                 .frame(width: 20)
-                            TextField("Assigned block id", text: $vm.assignedBlockId)
-                                .disabled(true)
+                            Text("Assigned Block")
+                            Spacer()
+                            Text(assignedBlockLabel)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -168,11 +170,18 @@ struct ProfileView: View {
                     vm.load(from: user)
                 }
             }
+            .task {
+                await blocksVM.load()
+            }
         }
         .toast(isPresented: $showToast, text: toastText, seconds: 1.2)
     }
 
     private var roleColor: Color {
         AppTheme.roleColor(authVM.currentUser?.role)
+    }
+
+    private var assignedBlockLabel: String {
+        BlockAssignment.displayName(for: authVM.currentUser?.assignedBlockId, blocks: blocksVM.blocks)
     }
 }

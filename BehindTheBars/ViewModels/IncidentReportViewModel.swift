@@ -26,16 +26,28 @@ final class IncidentReportViewModel: ObservableObject {
         let incidentBlockId: String
 
         if currentUser.role == "guard" {
-            guard let assigned = currentUser.assignedBlockId, !assigned.isEmpty else {
+            let assignedBlockId = BlockAssignment.normalized(currentUser.assignedBlockId)
+
+            guard !assignedBlockId.isEmpty else {
                 errorMessage = "You are not assigned to a block."
                 return
             }
-            let invalid = selectedInmates.contains { $0.blockId != assigned }
-            if invalid {
-                errorMessage = "Guards can only use inmates from their assigned block."
-                return
+
+            if let specificBlockId = BlockAssignment.specificBlockId(assignedBlockId) {
+                let invalid = selectedInmates.contains { $0.blockId != specificBlockId }
+                if invalid {
+                    errorMessage = "Guards can only use inmates from their assigned block."
+                    return
+                }
+                incidentBlockId = specificBlockId
+            } else {
+                incidentBlockId = selectedInmates[0].blockId
+                let mixed = selectedInmates.contains { $0.blockId != incidentBlockId }
+                if mixed {
+                    errorMessage = "All selected inmates must be from the same block."
+                    return
+                }
             }
-            incidentBlockId = assigned
         } else {
             // warden/admin: force single-block incident for now
             incidentBlockId = selectedInmates[0].blockId
@@ -45,6 +57,10 @@ final class IncidentReportViewModel: ObservableObject {
                 return
             }
         }
+        /*
+            Guards with specific block assignments stay locked to that block.
+            Guards assigned to All Blocks can report any single-block incident.
+         */
 
         isSubmitting = true
         submissionSuccess = false

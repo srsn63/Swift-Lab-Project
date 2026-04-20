@@ -121,7 +121,7 @@ struct GuardShiftScheduleView: View {
     }
 
     private func getBlockName(id: String) -> String {
-        blocksVM.blocks.first(where: { $0.id == id })?.name ?? (id.isEmpty ? "Unassigned" : id)
+        BlockAssignment.displayName(for: id, blocks: blocksVM.blocks)
     }
 }
 
@@ -156,34 +156,14 @@ private struct ShiftGuardRowCard: View {
                     Spacer()
 
                     StatusBadge(
-                        text: (user.assignedBlockId ?? "").isEmpty ? "Unassigned" : blockName,
-                        color: (user.assignedBlockId ?? "").isEmpty ? .secondary : AppTheme.accent,
+                        text: blockName,
+                        color: BlockAssignment.isUnassigned(user.assignedBlockId) ? .secondary : AppTheme.accent,
                         small: true
                     )
                 }
 
                 if let dutyStartAt = user.dutyAnchorDate {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(
-                                dutyStatus.isOnDuty
-                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                            )
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
-
-                            Text(
-                                dutyStatus.isOnDuty
-                                    ? "Current window: \(dutyStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(dutyStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
-                                    : "Next window: \(dutyStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(dutyStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(AppTheme.inkMuted)
-                        }
-                    }
+                    DutyScheduleStatusView(dutyStartAt: dutyStartAt)
                 } else {
                     Text("Duty schedule not assigned")
                         .font(.caption)
@@ -191,5 +171,52 @@ private struct ShiftGuardRowCard: View {
                 }
             }
         }
+    }
+}
+
+private struct DutyScheduleStatusView: View {
+    let dutyStartAt: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            VStack(alignment: .leading, spacing: 6) {
+                Text(primaryText(now: context.date))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(isOnDuty(now: context.date) ? AppTheme.success : AppTheme.warning)
+
+                Text(secondaryText(now: context.date))
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.inkMuted)
+            }
+        }
+    }
+
+    private func status(now: Date) -> ShiftDutyScheduleStatus {
+        ShiftDutySchedule.status(for: dutyStartAt, now: now)
+    }
+
+    private func isOnDuty(now: Date) -> Bool {
+        status(now: now).isOnDuty
+    }
+
+    private func primaryText(now: Date) -> String {
+        let currentStatus = status(now: now)
+        let countdown = ShiftDutySchedule.countdownString(to: currentStatus.nextChangeDate, now: now)
+
+        if currentStatus.isOnDuty {
+            return "On duty, ends in \(countdown)"
+        }
+
+        return "Off duty, starts in \(countdown)"
+    }
+
+    private func secondaryText(now: Date) -> String {
+        let currentStatus = status(now: now)
+
+        if currentStatus.isOnDuty {
+            return "Current window: \(currentStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(currentStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
+        }
+
+        return "Next window: \(currentStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(currentStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
     }
 }

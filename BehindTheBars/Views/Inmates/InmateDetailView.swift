@@ -4,93 +4,126 @@ import FirebaseFirestoreSwift
 
 struct InmateDetailView: View {
     let inmate: Inmate
+    let initialBlockName: String?
+
     @State private var blockName: String?
-    
+
+    init(inmate: Inmate, initialBlockName: String? = nil) {
+        self.inmate = inmate
+        self.initialBlockName = initialBlockName
+    }
+
+    private var securityColor: Color {
+        AppTheme.securityColor(inmate.securityLevel)
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(AppTheme.securityColor(inmate.securityLevel).opacity(0.15))
-                            .frame(width: 80, height: 80)
-                        Text(String(inmate.firstName.prefix(1)) + String(inmate.lastName.prefix(1)))
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(AppTheme.securityColor(inmate.securityLevel))
-                    }
+        ZStack {
+            AppScreenBackground()
 
-                    Text(inmate.fullName)
-                        .font(.title2.bold())
-
-                    StatusBadge(
-                        text: inmate.securityLevel.uppercased(),
-                        color: AppTheme.securityColor(inmate.securityLevel)
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppHeroHeader(
+                        title: inmate.fullName,
+                        subtitle: "\(resolvedBlockName) / Cell \(inmate.cellId)",
+                        icon: "person.crop.rectangle.stack.fill",
+                        tint: securityColor,
+                        badgeText: inmate.securityLevel.uppercased()
                     )
 
                     if inmate.isSolitary {
-                        HStack(spacing: 6) {
-                            Image(systemName: "lock.fill")
-                                .font(.caption)
-                            Text("Solitary Confinement")
+                        AppMessageBanner(
+                            text: "This inmate is currently marked for solitary confinement.",
+                            tint: AppTheme.danger,
+                            icon: "lock.fill"
+                        )
+                    }
+
+                    AppSurfaceCard(tint: securityColor) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Placement", systemImage: "building.2")
                                 .font(.caption.bold())
+                                .foregroundColor(securityColor)
+
+                            InfoRow(label: "Block", value: resolvedBlockName)
+                            InfoRow(label: "Cell", value: inmate.cellId)
+                            InfoRow(label: "Security Level", value: inmate.securityLevel.capitalized)
+                            InfoRow(label: "Custody", value: inmate.isSolitary ? "Solitary Confinement" : "Standard Housing")
                         }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(AppTheme.danger)
-                        .cornerRadius(8)
+                    }
+
+                    AppSurfaceCard(tint: AppTheme.accent) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Sentence Timeline", systemImage: "calendar.badge.clock")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.accent)
+
+                            InfoRow(label: "Admitted", value: inmate.admissionDate.formatted(date: .long, time: .omitted))
+                            InfoRow(label: "Sentence Length", value: "\(inmate.sentenceMonths) months")
+                            InfoRow(label: "Release Date", value: inmate.releaseDate.formatted(date: .long, time: .omitted))
+                            InfoRow(label: "Time Remaining", value: remainingTimeText)
+                        }
+                    }
+
+                    AppSurfaceCard(tint: inmate.isSolitary ? AppTheme.danger : AppTheme.success) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Status", systemImage: inmate.isSolitary ? "lock.shield.fill" : "checkmark.shield.fill")
+                                .font(.caption.bold())
+                                .foregroundColor(inmate.isSolitary ? AppTheme.danger : AppTheme.success)
+
+                            Text(inmateStatusSummary)
+                                .font(.body)
+                                .foregroundStyle(AppTheme.ink)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
-                .padding(.vertical, 28)
-                .frame(maxWidth: .infinity)
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-
-                // Info sections
-                VStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Placement", systemImage: "building.2")
-                            .font(.caption.bold())
-                            .foregroundColor(AppTheme.accent)
-                        Divider()
-                        InfoRow(label: "Block", value: blockName ?? inmate.blockId)
-                        InfoRow(label: "Cell", value: inmate.cellId)
-                    }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Sentence", systemImage: "calendar")
-                            .font(.caption.bold())
-                            .foregroundColor(AppTheme.accent)
-                        Divider()
-                        InfoRow(label: "Admitted", value: inmate.admissionDate.formatted(date: .abbreviated, time: .omitted))
-                        InfoRow(label: "Duration", value: "\(inmate.sentenceMonths) months")
-                        InfoRow(label: "Release Date", value: inmate.releaseDate.formatted(date: .abbreviated, time: .omitted))
-                    }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
-                }
-                .padding(16)
+                .padding(20)
             }
         }
-        .background(Color(UIColor.systemGroupedBackground))
-        .navigationTitle("Details")
+        .navigationTitle("Inmate Details")
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            if blockName == nil {
+                blockName = initialBlockName
+            }
+
             if blockName == nil, !inmate.blockId.isEmpty {
-                 // Try to fetch block name
-                 do {
-                     let doc = try await FirebaseManager.shared.blocksRef.document(inmate.blockId).getDocument()
-                     if let block = try? doc.data(as: Block.self) {
-                         self.blockName = block.name
-                     }
-                 } catch {
-                     print("Error fetching block name: \(error)")
-                 }
+                do {
+                    let doc = try await FirebaseManager.shared.blocksRef.document(inmate.blockId).getDocument()
+                    if let block = try? doc.data(as: Block.self) {
+                        self.blockName = block.name
+                    }
+                } catch {
+                    print("Error fetching block name: \(error)")
+                }
             }
         }
+    }
+
+    private var resolvedBlockName: String {
+        blockName ?? inmate.blockId
+    }
+
+    private var remainingTimeText: String {
+        let now = Calendar.current.startOfDay(for: Date())
+        let release = Calendar.current.startOfDay(for: inmate.releaseDate)
+
+        if release < now {
+            return "Release date reached"
+        }
+
+        let components = Calendar.current.dateComponents([.month, .day], from: now, to: release)
+        let months = max(components.month ?? 0, 0)
+        let days = max(components.day ?? 0, 0)
+        return "\(months) months, \(days) days"
+    }
+
+    private var inmateStatusSummary: String {
+        if inmate.isSolitary {
+            return "This inmate is under solitary confinement and should be reviewed with elevated custody awareness."
+        }
+
+        return "This inmate is housed in the standard population with a \(inmate.securityLevel.lowercased()) security classification."
     }
 }

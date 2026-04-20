@@ -70,32 +70,7 @@ struct StaffDetailView: View {
                                 .foregroundColor(staff.isActive ? AppTheme.success : AppTheme.warning)
 
                             if let dutyStartAt = staff.dutyAnchorDate {
-                                TimelineView(.periodic(from: .now, by: 1)) { context in
-                                    let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        StatusBadge(
-                                            text: dutyStatus.isOnDuty ? "On Duty" : "Off Duty",
-                                            color: dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning
-                                        )
-
-                                        Text(dutyStatus.isOnDuty ? "Duty ends in" : "Next duty starts in")
-                                            .font(.caption)
-                                            .foregroundStyle(AppTheme.inkMuted)
-
-                                        Text(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))
-                                            .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
-                                            .foregroundStyle(AppTheme.ink)
-
-                                        Text(
-                                            dutyStatus.isOnDuty
-                                                ? "Current duty window: \(dutyStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(dutyStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
-                                                : "Next duty window: \(dutyStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(dutyStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
-                                        )
-                                        .font(.caption)
-                                        .foregroundStyle(AppTheme.inkMuted)
-                                    }
-                                }
+                                StaffLiveDutyStatusView(dutyStartAt: dutyStartAt)
                             } else {
                                 AppMessageBanner(
                                     text: "A duty schedule has not been assigned yet.",
@@ -179,5 +154,55 @@ struct StaffDetailView: View {
                 }
             }
         }
+    }
+}
+
+private struct StaffLiveDutyStatusView: View {
+    let dutyStartAt: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            VStack(alignment: .leading, spacing: 12) {
+                StatusBadge(
+                    text: isOnDuty(now: context.date) ? "On Duty" : "Off Duty",
+                    color: isOnDuty(now: context.date) ? AppTheme.success : AppTheme.warning
+                )
+
+                Text(isOnDuty(now: context.date) ? "Duty ends in" : "Next duty starts in")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.inkMuted)
+
+                Text(countdown(now: context.date))
+                    .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(AppTheme.ink)
+
+                Text(windowText(now: context.date))
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.inkMuted)
+            }
+        }
+    }
+
+    private func status(now: Date) -> ShiftDutyScheduleStatus {
+        ShiftDutySchedule.status(for: dutyStartAt, now: now)
+    }
+
+    private func isOnDuty(now: Date) -> Bool {
+        status(now: now).isOnDuty
+    }
+
+    private func countdown(now: Date) -> String {
+        let currentStatus = status(now: now)
+        return ShiftDutySchedule.countdownString(to: currentStatus.nextChangeDate, now: now)
+    }
+
+    private func windowText(now: Date) -> String {
+        let currentStatus = status(now: now)
+
+        if currentStatus.isOnDuty {
+            return "Current duty window: \(currentStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(currentStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
+        }
+
+        return "Next duty window: \(currentStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(currentStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
     }
 }

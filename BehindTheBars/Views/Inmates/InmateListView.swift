@@ -10,112 +10,64 @@ struct InmateListView: View {
     @State private var editingInmate: Inmate?
     @State private var deletingInmate: Inmate?
 
-    private var isGuard: Bool { authVM.currentUser?.role == "guard" }
-    private var guardBlockId: String { authVM.currentUser?.assignedBlockId ?? "" }
+    private var isGuard: Bool {
+        authVM.currentUser?.role == "guard"
+    }
 
-    private var filtered: [Inmate] {
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if q.isEmpty { return vm.inmates }
-        return vm.inmates.filter { $0.fullName.lowercased().contains(q) || $0.cellId.lowercased().contains(q) }
+    private var guardBlockId: String {
+        BlockAssignment.normalized(authVM.currentUser?.assignedBlockId)
+    }
+
+    private var filteredInmates: [Inmate] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if query.isEmpty {
+            return vm.inmates
+        }
+
+        return vm.inmates.filter { inmate in
+            inmate.fullName.lowercased().contains(query) || inmate.cellId.lowercased().contains(query)
+        }
+    }
+
+    private var rosterSubtitle: String {
+        if !isGuard {
+            return "Manage inmate admission, placement, and sentence status with the same visual system used across the rest of the app."
+        }
+
+        if BlockAssignment.isAllBlocks(guardBlockId) {
+            return "Review inmates across the entire prison with the same roster, detail, and placement style used everywhere else."
+        }
+
+        let blockLabel = blockLabel(for: guardBlockId)
+        if !BlockAssignment.isUnassigned(guardBlockId) && blockLabel != "Unassigned" {
+            return "Review inmates assigned to \(blockLabel) with a cleaner, consistent roster and detail view."
+        }
+
+        return "A block assignment is required before a guard can open the inmate roster."
     }
 
     var body: some View {
         List {
-            if let err = vm.errorMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(AppTheme.danger)
-                    Text(err)
-                        .foregroundStyle(AppTheme.danger)
-                        .font(.footnote)
-                }
-            }
-
-            if filtered.isEmpty && vm.errorMessage == nil {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 10) {
-                        Image(systemName: "person.crop.rectangle.stack")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text(searchText.isEmpty ? "No inmates found" : "No results for \"\(searchText)\"")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 40)
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            }
-
-            ForEach(filtered) { inmate in
-                VStack(alignment: .leading, spacing: 8) {
-                    NavigationLink {
-                        InmateDetailView(inmate: inmate)
-                    } label: {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(AppTheme.securityColor(inmate.securityLevel).opacity(0.12))
-                                    .frame(width: 44, height: 44)
-                                Text(String(inmate.firstName.prefix(1)))
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(AppTheme.securityColor(inmate.securityLevel))
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(inmate.fullName)
-                                    .font(.subheadline.bold())
-                                HStack(spacing: 6) {
-                                    Label(getBlockName(id: inmate.blockId), systemImage: "building.2")
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                    Text("•")
-                                    Label(inmate.cellId, systemImage: "door.left.hand.closed")
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            StatusBadge(
-                                text: inmate.securityLevel,
-                                color: AppTheme.securityColor(inmate.securityLevel),
-                                small: true
-                            )
-                        }
-                        .padding(.vertical, 4)
-                    }
-
-                    if !isGuard {
-                        HStack(spacing: 10) {
-                            Button {
-                                editingInmate = inmate
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                                    .font(.caption.bold())
-                                    .foregroundColor(AppTheme.accent)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(AppTheme.accent.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                deletingInmate = inmate
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                                    .font(.caption.bold())
-                                    .foregroundColor(AppTheme.danger)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(AppTheme.danger.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
+            headerSection
+            summarySection
+            errorSection
+            contentSection
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
+        .navigationTitle("Inmates")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, prompt: "Search by name or cell")
+        .toolbar {
+            if !isGuard {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAdd = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Circle().fill(AppTheme.accentGradient))
                     }
                 }
             }
@@ -123,60 +75,267 @@ struct InmateListView: View {
         .task {
             await blocksVM.load()
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Inmates")
-        .searchable(text: $searchText, prompt: "Search by name or cell")
-        .toolbar {
-            if !isGuard {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingAdd = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(AppTheme.accent)
-                    }
-                }
-            }
-        }
         .onAppear {
-            if isGuard {
-                if guardBlockId.isEmpty {
-                    vm.inmates = []
-                    vm.errorMessage = "You are not assigned to a block."
-                } else {
-                    vm.startListener(blockIdFilter: guardBlockId)
-                }
-            } else {
-                vm.startListener()
-            }
+            startRosterListener()
+        }
+        .onDisappear {
+            vm.stopListener()
         }
         .sheet(isPresented: $showingAdd) {
-            NavigationStack {
-                InmateAdmissionView(onCreated: { })
-            }
+            InmateAdmissionView(onCreated: { })
         }
         .sheet(item: $editingInmate) { inmate in
             NavigationStack {
                 InmateEditorView(inmateId: inmate.id, existing: inmate) { updated in
-                    guard let id = inmate.id else { return }
-                    try await vm.update(inmateId: id, inmate: updated)
+                    guard let inmateId = inmate.id else { return }
+                    try await vm.update(inmateId: inmateId, inmate: updated)
                 }
             }
         }
-        .alert("Delete Inmate", isPresented: .constant(deletingInmate != nil), presenting: deletingInmate) { inmate in
+        .alert("Delete Inmate", isPresented: deleteAlertBinding, presenting: deletingInmate) { inmate in
             Button("Cancel", role: .cancel) {
                 deletingInmate = nil
             }
+
             Button("Delete", role: .destructive) {
-                guard let id = inmate.id else { return }
-                Task { try? await vm.delete(inmateId: id) }
-                deletingInmate = nil
+                deleteInmate(inmate)
             }
         } message: { inmate in
             Text("Delete \(inmate.fullName)? This cannot be undone.")
         }
     }
 
-    private func getBlockName(id: String) -> String {
-        blocksVM.blocks.first(where: { $0.id == id })?.name ?? id
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { deletingInmate != nil },
+            set: { newValue in
+                if !newValue {
+                    deletingInmate = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var headerSection: some View {
+        Section {
+            AppHeroHeader(
+                title: "Inmate Roster",
+                subtitle: rosterSubtitle,
+                icon: "person.crop.rectangle.stack.fill",
+                tint: AppTheme.accent,
+                badgeText: "\(filteredInmates.count)"
+            )
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    private var summarySection: some View {
+        Section {
+            AppSurfaceCard(tint: AppTheme.accent) {
+                HStack {
+                    summaryStat(title: "Low", count: lowSecurityCount, color: .green)
+                    Spacer()
+                    summaryStat(title: "Medium", count: mediumSecurityCount, color: .orange)
+                    Spacer()
+                    summaryStat(title: "High", count: highSecurityCount, color: .red)
+                }
+            }
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    private var errorSection: some View {
+        if let errorMessage = vm.errorMessage {
+            Section {
+                AppMessageBanner(text: errorMessage, tint: AppTheme.danger)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    @ViewBuilder
+    private var contentSection: some View {
+        if filteredInmates.isEmpty && vm.errorMessage == nil {
+            Section {
+                AppEmptyStateCard(
+                    title: searchText.isEmpty ? "No inmates found" : "No matching inmates",
+                    subtitle: searchText.isEmpty
+                        ? "Admitted inmates will appear here with consistent placement and sentence details."
+                        : "Try a different inmate name or cell number.",
+                    icon: "person.crop.rectangle.stack",
+                    tint: AppTheme.accent
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else {
+            Section {
+                ForEach(filteredInmates) { inmate in
+                    inmateRow(for: inmate)
+                }
+            } header: {
+                Label("Inmate Feed", systemImage: "list.bullet.rectangle.portrait")
+                    .font(.caption.bold())
+                    .foregroundColor(AppTheme.accent)
+            }
+        }
+    }
+
+    private var lowSecurityCount: Int {
+        filteredInmates.filter { $0.securityLevel.lowercased() == "low" }.count
+    }
+
+    private var mediumSecurityCount: Int {
+        filteredInmates.filter { $0.securityLevel.lowercased() == "medium" }.count
+    }
+
+    private var highSecurityCount: Int {
+        filteredInmates.filter { $0.securityLevel.lowercased() == "high" }.count
+    }
+
+    private func summaryStat(title: String, count: Int, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.inkMuted)
+            Text("\(count)")
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundColor(color)
+            Text("inmates")
+                .font(.caption)
+                .foregroundStyle(AppTheme.inkMuted)
+        }
+    }
+
+    private func inmateRow(for inmate: Inmate) -> some View {
+        NavigationLink {
+            InmateDetailView(
+                inmate: inmate,
+                initialBlockName: blockLabel(for: inmate.blockId)
+            )
+        } label: {
+            InmateRowCard(
+                inmate: inmate,
+                blockName: blockLabel(for: inmate.blockId)
+            )
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if !isGuard {
+                Button {
+                    editingInmate = inmate
+                } label: {
+                    Text("Edit")
+                }
+                .tint(AppTheme.accent)
+
+                Button(role: .destructive) {
+                    deletingInmate = inmate
+                } label: {
+                    Text("Delete")
+                }
+            }
+        }
+    }
+
+    private func deleteInmate(_ inmate: Inmate) {
+        guard let inmateId = inmate.id else {
+            deletingInmate = nil
+            return
+        }
+
+        Task {
+            try? await vm.delete(inmateId: inmateId)
+        }
+        deletingInmate = nil
+    }
+
+    private func startRosterListener() {
+        if !isGuard {
+            vm.startListener()
+            return
+        }
+
+        if BlockAssignment.isUnassigned(guardBlockId) {
+            vm.inmates = []
+            vm.errorMessage = "You are not assigned to a block."
+            return
+        }
+
+        if let specificBlockId = BlockAssignment.specificBlockId(guardBlockId) {
+            vm.startListener(blockIdFilter: specificBlockId)
+            return
+        }
+
+        vm.startListener()
+    }
+
+    private func blockLabel(for blockId: String) -> String {
+        BlockAssignment.displayName(for: blockId, blocks: blocksVM.blocks)
+    }
+}
+
+private struct InmateRowCard: View {
+    let inmate: Inmate
+    let blockName: String
+
+    private var securityColor: Color {
+        AppTheme.securityColor(inmate.securityLevel)
+    }
+
+    var body: some View {
+        AppSurfaceCard(tint: securityColor, padding: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(securityColor.opacity(0.12))
+                        .frame(width: 48, height: 48)
+                    Text(String(inmate.firstName.prefix(1)) + String(inmate.lastName.prefix(1)))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(securityColor)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Text(inmate.fullName)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(AppTheme.ink)
+
+                        if inmate.isSolitary {
+                            StatusBadge(text: "Solitary", color: AppTheme.danger, small: true)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Label(blockName, systemImage: "building.2")
+                            .lineLimit(1)
+                        Label(inmate.cellId, systemImage: "door.left.hand.closed")
+                            .lineLimit(1)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.inkMuted)
+
+                    Text("Release: \(inmate.releaseDate.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.inkMuted)
+                }
+
+                Spacer()
+
+                StatusBadge(
+                    text: inmate.securityLevel.uppercased(),
+                    color: securityColor,
+                    small: true
+                )
+            }
+        }
     }
 }

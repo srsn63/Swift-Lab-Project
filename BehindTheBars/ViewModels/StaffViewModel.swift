@@ -28,7 +28,9 @@ final class StaffViewModel: ObservableObject {
             list = list.filter { $0.resolvedShift == shift.rawValue }
         }
         if let blockId = selectedBlockId {
-            list = list.filter { $0.assignedBlockId == blockId }
+            list = list.filter {
+                BlockAssignment.isAllBlocks($0.assignedBlockId) || $0.assignedBlockId == blockId
+            }
         }
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !q.isEmpty {
@@ -51,8 +53,10 @@ final class StaffViewModel: ObservableObject {
                     self.errorMessage = err.localizedDescription
                     return
                 }
-                let list = snap?.documents.compactMap { try? $0.data(as: Staff.self) } ?? []
-                self.staffList = list.sorted { $0.fullName < $1.fullName }
+                let list = snap?.documents.compactMap(Staff.from(document:)) ?? []
+                self.staffList = list
+                    .filter { $0.isDeleted != true }
+                    .sorted { $0.fullName < $1.fullName }
             }
     }
 
@@ -75,31 +79,40 @@ final class StaffViewModel: ObservableObject {
     }
 
     func blockName(for id: String) -> String {
-        if id.isEmpty { return "Unassigned" }
-        return blocks.first(where: { $0.id == id })?.name ?? id
+        BlockAssignment.displayName(for: id, blocks: blocks)
     }
 
     // MARK: - CRUD
 
     func create(staff: Staff) async throws {
-        try FirebaseManager.shared.staffRef.addDocument(from: staff)
+        var newStaff = staff
+        newStaff.assignedBlockId = BlockAssignment.normalized(staff.assignedBlockId)
+        try FirebaseManager.shared.staffRef.addDocument(from: newStaff)
     }
 
     func update(staffId: String, staff: Staff) async throws {
+        let normalizedBlockId = BlockAssignment.normalized(staff.assignedBlockId)
+        var payload: [String: Any] = [
+            "fullName": staff.fullName,
+            "staffType": staff.staffType,
+            "phoneNumber": staff.phoneNumber,
+            "assignedBlockId": normalizedBlockId,
+            "shift": staff.shift,
+            "hireDate": Timestamp(date: staff.hireDate),
+            "isActive": staff.isActive,
+            "notes": staff.notes,
+            "updatedAt": Timestamp(date: staff.updatedAt)
+        ]
+
+        if let dutyStartAt = staff.dutyStartAt {
+            payload["dutyStartAt"] = Timestamp(date: dutyStartAt)
+        } else {
+            payload["dutyStartAt"] = FieldValue.delete()
+        }
+
         try await FirebaseManager.shared.staffRef
             .document(staffId)
-            .updateData([
-                "fullName": staff.fullName,
-                "staffType": staff.staffType,
-                "phoneNumber": staff.phoneNumber,
-                "assignedBlockId": staff.assignedBlockId,
-                "shift": staff.shift,
-                "dutyStartAt": Timestamp(date: staff.dutyStartAt ?? staff.updatedAt),
-                "hireDate": Timestamp(date: staff.hireDate),
-                "isActive": staff.isActive,
-                "notes": staff.notes,
-                "updatedAt": Timestamp(date: staff.updatedAt)
-            ])
+            .updateData(payload)
     }
 
     func delete(staffId: String) async throws {

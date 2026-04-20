@@ -49,7 +49,7 @@ final class DashboardStatsViewModel: ObservableObject {
                 .map { (name: $0.key, count: $0.value) }
                 .sorted { $0.name < $1.name }
 
-            let staff = staffSnap.documents.compactMap { try? $0.data(as: Staff.self) }
+            let staff = staffSnap.documents.compactMap(Staff.from(document:))
                 .filter { $0.isDeleted != true }
             staffCount = staff.count
 

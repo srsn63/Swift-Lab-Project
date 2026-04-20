@@ -50,8 +50,8 @@ struct MedicalRecordEditorView: View {
                 if let inmateMessage = vm.inmateSelectionMessage(for: currentUser) {
                     AppMessageBanner(
                         text: inmateMessage,
-                        tint: currentUser.assignedBlockId?.isEmpty == false ? AppTheme.warning : AppTheme.danger,
-                        icon: currentUser.assignedBlockId?.isEmpty == false ? "person.crop.rectangle.stack" : "building.2"
+                        tint: BlockAssignment.isUnassigned(currentUser.assignedBlockId) ? AppTheme.danger : AppTheme.warning,
+                        icon: BlockAssignment.isUnassigned(currentUser.assignedBlockId) ? "building.2" : "person.crop.rectangle.stack"
                     )
                 }
 
@@ -215,9 +215,13 @@ struct MedicalRecordEditorView: View {
         errorMessage = nil
 
         guard let inmate = vm.availableInmates.first(where: { $0.id == selectedInmateId }) else {
-            errorMessage = currentUser.assignedBlockId?.isEmpty == false
-                ? "Select an inmate from your assigned block."
-                : "You need a block assignment before creating a medical record."
+            if BlockAssignment.isUnassigned(currentUser.assignedBlockId) {
+                errorMessage = "You need a block assignment before creating a medical record."
+            } else if BlockAssignment.isAllBlocks(currentUser.assignedBlockId) {
+                errorMessage = "Select an inmate from the available prison-wide list."
+            } else {
+                errorMessage = "Select an inmate from your assigned block."
+            }
             return
         }
 

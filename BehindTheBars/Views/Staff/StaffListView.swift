@@ -251,16 +251,7 @@ struct StaffRowView: View {
                     .foregroundStyle(AppTheme.inkMuted)
 
                     if let dutyStartAt = staff.dutyAnchorDate {
-                        TimelineView(.periodic(from: .now, by: 1)) { context in
-                            let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-                            Text(
-                                dutyStatus.isOnDuty
-                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                            )
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
-                        }
+                        StaffDutyStatusLabel(dutyStartAt: dutyStartAt)
                     } else {
                         Text("Duty schedule not assigned")
                             .font(.caption2)
@@ -277,6 +268,37 @@ struct StaffRowView: View {
                 )
             }
         }
+    }
+}
+
+private struct StaffDutyStatusLabel: View {
+    let dutyStartAt: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            Text(primaryText(now: context.date))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(isOnDuty(now: context.date) ? AppTheme.success : AppTheme.warning)
+        }
+    }
+
+    private func status(now: Date) -> ShiftDutyScheduleStatus {
+        ShiftDutySchedule.status(for: dutyStartAt, now: now)
+    }
+
+    private func isOnDuty(now: Date) -> Bool {
+        status(now: now).isOnDuty
+    }
+
+    private func primaryText(now: Date) -> String {
+        let currentStatus = status(now: now)
+        let countdown = ShiftDutySchedule.countdownString(to: currentStatus.nextChangeDate, now: now)
+
+        if currentStatus.isOnDuty {
+            return "On duty, ends in \(countdown)"
+        }
+
+        return "Off duty, starts in \(countdown)"
     }
 }
 

@@ -28,8 +28,8 @@ final class InmateSelectionViewModel: ObservableObject {
         listener?.remove()
 
         var query: Query = FirebaseManager.shared.inmatesRef
-        if let b = filterBlockId, !b.isEmpty {
-            query = query.whereField("blockId", isEqualTo: b)
+        if let specificBlockId = BlockAssignment.specificBlockId(filterBlockId) {
+            query = query.whereField("blockId", isEqualTo: specificBlockId)
         }
 
         listener = query.addSnapshotListener { [weak self] snap, err in
@@ -40,7 +40,9 @@ final class InmateSelectionViewModel: ObservableObject {
                 return
             }
             let list = snap?.documents.compactMap { try? $0.data(as: Inmate.self) } ?? []
-            self.inmates = list.sorted { $0.fullName < $1.fullName }
+            self.inmates = list
+                .filter { $0.isDeleted != true }
+                .sorted { $0.fullName < $1.fullName }
             self.errorMessage = nil
         }
     }

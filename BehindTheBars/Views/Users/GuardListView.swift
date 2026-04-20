@@ -41,7 +41,7 @@ final class GuardListViewModel: ObservableObject {
         try await FirebaseManager.shared.usersRef.document(uid).updateData([
             "fullName": fullName,
             "badgeNumber": badge,
-            "assignedBlockId": blockId,
+            "assignedBlockId": BlockAssignment.normalized(blockId),
             "shift": ShiftDutySchedule.initialShiftName(for: dutyStartAt),
             "dutyStartAt": Timestamp(date: dutyStartAt)
         ])
@@ -154,7 +154,7 @@ struct GuardListView: View {
     }
 
     private func getBlockName(id: String) -> String {
-        blocksVM.blocks.first(where: { $0.id == id })?.name ?? (id.isEmpty ? "Unassigned" : id)
+        BlockAssignment.displayName(for: id, blocks: blocksVM.blocks)
     }
 
     private func displayName(for user: User) -> String {
@@ -204,8 +204,8 @@ private struct GuardRowCard: View {
                     Spacer()
 
                     StatusBadge(
-                        text: (user.assignedBlockId ?? "").isEmpty ? "Unassigned" : blockName,
-                        color: (user.assignedBlockId ?? "").isEmpty ? .secondary : AppTheme.accent,
+                        text: blockName,
+                        color: BlockAssignment.isUnassigned(user.assignedBlockId) ? .secondary : AppTheme.accent,
                         small: true
                     )
                 }
@@ -217,19 +217,7 @@ private struct GuardRowCard: View {
                 }
 
                 if let dutyStartAt = user.dutyAnchorDate {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-                        HStack(spacing: 8) {
-                            Image(systemName: dutyStatus.isOnDuty ? "checkmark.circle.fill" : "clock.badge")
-                            Text(
-                                dutyStatus.isOnDuty
-                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                            )
-                        }
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
-                    }
+                    GuardDutyStatusLabel(dutyStartAt: dutyStartAt)
                 } else {
                     Label("Duty schedule not assigned", systemImage: "clock.badge.exclamationmark")
                         .font(.caption)
@@ -267,5 +255,39 @@ private struct GuardRowCard: View {
                 }
             }
         }
+    }
+}
+
+private struct GuardDutyStatusLabel: View {
+    let dutyStartAt: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            HStack(spacing: 8) {
+                Image(systemName: isOnDuty(now: context.date) ? "checkmark.circle.fill" : "clock.badge")
+                Text(primaryText(now: context.date))
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(isOnDuty(now: context.date) ? AppTheme.success : AppTheme.warning)
+        }
+    }
+
+    private func status(now: Date) -> ShiftDutyScheduleStatus {
+        ShiftDutySchedule.status(for: dutyStartAt, now: now)
+    }
+
+    private func isOnDuty(now: Date) -> Bool {
+        status(now: now).isOnDuty
+    }
+
+    private func primaryText(now: Date) -> String {
+        let currentStatus = status(now: now)
+        let countdown = ShiftDutySchedule.countdownString(to: currentStatus.nextChangeDate, now: now)
+
+        if currentStatus.isOnDuty {
+            return "On duty, ends in \(countdown)"
+        }
+
+        return "Off duty, starts in \(countdown)"
     }
 }
