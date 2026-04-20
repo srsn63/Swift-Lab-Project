@@ -15,133 +15,111 @@ struct StaffDetailView: View {
         ShiftType(rawValue: staff.resolvedShift) ?? .morning
     }
 
+    private var blockLabel: String {
+        vm.blockName(for: staff.assignedBlockId)
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(staffType.color.opacity(0.15))
-                            .frame(width: 80, height: 80)
-                        Image(systemName: staffType.icon)
-                            .font(.system(size: 30, weight: .bold))
-                            .foregroundColor(staffType.color)
-                    }
+        ZStack {
+            AppScreenBackground()
 
-                    Text(staff.fullName)
-                        .font(.title2.bold())
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppHeroHeader(
+                        title: staff.fullName.isEmpty ? "Unnamed Staff" : staff.fullName,
+                        subtitle: "\(staffType.displayName) assigned to \(blockLabel)",
+                        icon: staffType.icon,
+                        tint: staffType.color,
+                        badgeText: staff.isActive ? "Active" : "Inactive"
+                    )
 
-                    HStack(spacing: 8) {
-                        StatusBadge(
-                            text: staffType.displayName,
-                            color: staffType.color
-                        )
-                        StatusBadge(
-                            text: staff.isActive ? "Active" : "Inactive",
-                            color: staff.isActive ? AppTheme.success : AppTheme.danger
-                        )
-                    }
-                }
-                .padding(.vertical, 28)
-                .frame(maxWidth: .infinity)
-                .background(Color(UIColor.secondarySystemGroupedBackground))
+                    AppSurfaceCard(tint: staffType.color) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Overview", systemImage: "person.text.rectangle")
+                                .font(.caption.bold())
+                                .foregroundColor(staffType.color)
 
-                // Info sections
-                VStack(spacing: 16) {
-                    // Overview
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Overview", systemImage: "person.text.rectangle")
-                            .font(.caption.bold())
-                            .foregroundColor(AppTheme.accent)
-                        Divider()
-                        InfoRow(label: "Full Name", value: staff.fullName)
-                        InfoRow(label: "Type", value: staffType.displayName)
-                        InfoRow(label: "Phone", value: staff.phoneNumber.isEmpty ? "—" : staff.phoneNumber)
-                        InfoRow(label: "Hire Date", value: staff.hireDate.formatted(date: .abbreviated, time: .omitted))
-                        InfoRow(label: "Status", value: staff.isActive ? "Active" : "Inactive")
-                    }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
-
-                    // Assignment
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Assignment", systemImage: "building.2")
-                            .font(.caption.bold())
-                            .foregroundColor(AppTheme.accent)
-                        Divider()
-                        InfoRow(label: "Block", value: vm.blockName(for: staff.assignedBlockId))
-                        InfoRow(label: "Shift", value: shiftType.displayName)
-                        if let dutyStartAt = staff.dutyAnchorDate {
-                            InfoRow(label: "First Duty Start", value: dutyStartAt.formatted(date: .abbreviated, time: .shortened))
-                        } else {
-                            InfoRow(label: "First Duty Start", value: "Not assigned")
+                            InfoRow(label: "Full Name", value: staff.fullName.isEmpty ? "Not provided" : staff.fullName)
+                            InfoRow(label: "Type", value: staffType.displayName)
+                            InfoRow(label: "Phone", value: staff.phoneNumber.isEmpty ? "Not provided" : staff.phoneNumber)
+                            InfoRow(label: "Hire Date", value: staff.hireDate.formatted(date: .abbreviated, time: .omitted))
+                            InfoRow(label: "Status", value: staff.isActive ? "Active" : "Inactive")
                         }
                     }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Live Duty Status", systemImage: "clock.badge.checkmark")
-                            .font(.caption.bold())
-                            .foregroundColor(AppTheme.accent)
-                        Divider()
-
-                        if let dutyStartAt = staff.dutyAnchorDate {
-                            TimelineView(.periodic(from: .now, by: 1)) { context in
-                                let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-
-                                VStack(alignment: .leading, spacing: 10) {
-                                    StatusBadge(
-                                        text: dutyStatus.isOnDuty ? "On Duty" : "Off Duty",
-                                        color: dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning
-                                    )
-
-                                    Text(dutyStatus.isOnDuty ? "Duty ends in" : "Next duty starts in")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    Text(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))
-                                        .font(.title3.bold().monospacedDigit())
-
-                                    Text(
-                                        dutyStatus.isOnDuty
-                                            ? "Current duty window: \(dutyStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(dutyStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
-                                            : "Next duty window: \(dutyStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(dutyStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
-                                    )
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                }
-                            }
-                        } else {
-                            Text("A duty schedule has not been assigned yet.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
-
-                    // Notes
-                    if !staff.notes.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label("Notes", systemImage: "note.text")
+                    AppSurfaceCard(tint: AppTheme.accent) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Assignment", systemImage: "building.2")
                                 .font(.caption.bold())
                                 .foregroundColor(AppTheme.accent)
-                            Divider()
-                            Text(staff.notes)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+
+                            InfoRow(label: "Block", value: blockLabel)
+                            InfoRow(label: "Shift", value: shiftType.displayName)
+                            if let dutyStartAt = staff.dutyAnchorDate {
+                                InfoRow(label: "First Duty Start", value: dutyStartAt.formatted(date: .abbreviated, time: .shortened))
+                            } else {
+                                InfoRow(label: "First Duty Start", value: "Not assigned")
+                            }
                         }
-                        .padding(16)
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(14)
                     }
 
-                    // Actions
+                    AppSurfaceCard(tint: staff.isActive ? AppTheme.success : AppTheme.warning) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Live Duty Status", systemImage: "clock.badge.checkmark")
+                                .font(.caption.bold())
+                                .foregroundColor(staff.isActive ? AppTheme.success : AppTheme.warning)
+
+                            if let dutyStartAt = staff.dutyAnchorDate {
+                                TimelineView(.periodic(from: .now, by: 1)) { context in
+                                    let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
+
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        StatusBadge(
+                                            text: dutyStatus.isOnDuty ? "On Duty" : "Off Duty",
+                                            color: dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning
+                                        )
+
+                                        Text(dutyStatus.isOnDuty ? "Duty ends in" : "Next duty starts in")
+                                            .font(.caption)
+                                            .foregroundStyle(AppTheme.inkMuted)
+
+                                        Text(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))
+                                            .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
+                                            .foregroundStyle(AppTheme.ink)
+
+                                        Text(
+                                            dutyStatus.isOnDuty
+                                                ? "Current duty window: \(dutyStatus.currentWindowStart.formatted(date: .omitted, time: .shortened)) to \(dutyStatus.currentWindowEnd.formatted(date: .omitted, time: .shortened))"
+                                                : "Next duty window: \(dutyStatus.nextDutyStart.formatted(date: .abbreviated, time: .shortened)) to \(dutyStatus.nextDutyEnd.formatted(date: .abbreviated, time: .shortened))"
+                                        )
+                                        .font(.caption)
+                                        .foregroundStyle(AppTheme.inkMuted)
+                                    }
+                                }
+                            } else {
+                                AppMessageBanner(
+                                    text: "A duty schedule has not been assigned yet.",
+                                    tint: AppTheme.warning,
+                                    icon: "clock.badge.exclamationmark"
+                                )
+                            }
+                        }
+                    }
+
+                    if !staff.notes.isEmpty {
+                        AppSurfaceCard(tint: AppTheme.primaryLight) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Label("Notes", systemImage: "note.text")
+                                    .font(.caption.bold())
+                                    .foregroundColor(AppTheme.primaryLight)
+
+                                Text(staff.notes)
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.inkMuted)
+                            }
+                        }
+                    }
+
                     VStack(spacing: 12) {
                         Button {
                             showEdit = true
@@ -150,9 +128,11 @@ struct StaffDetailView: View {
                                 .font(.subheadline.bold())
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(AppTheme.accent)
-                                .cornerRadius(12)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(AppTheme.accentGradient)
+                                )
                         }
 
                         Button {
@@ -168,17 +148,17 @@ struct StaffDetailView: View {
                             .font(.subheadline.bold())
                             .foregroundColor(staff.isActive ? AppTheme.danger : AppTheme.success)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background((staff.isActive ? AppTheme.danger : AppTheme.success).opacity(0.12))
-                            .cornerRadius(12)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill((staff.isActive ? AppTheme.danger : AppTheme.success).opacity(0.12))
+                            )
                         }
                     }
-                    .padding(.top, 8)
                 }
-                .padding(16)
+                .padding(20)
             }
         }
-        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Staff Details")
         .navigationBarTitleDisplayMode(.inline)
         .task {

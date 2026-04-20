@@ -26,38 +26,28 @@ struct SignUpView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.headerGradient.ignoresSafeArea()
+            AppScreenBackground()
 
             ScrollView {
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(.white.opacity(0.1))
-                                .frame(width: 80, height: 80)
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 36))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
+                VStack(spacing: 18) {
+                    AppHeroHeader(
+                        title: "Create Account",
+                        subtitle: "Request secure access as a guard or warden using your approved institutional email.",
+                        icon: "person.badge.plus",
+                        tint: AppTheme.accent,
+                        badgeText: "Request Access"
+                    )
 
-                        Text("Create Account")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.top, 40)
-                    .padding(.bottom, 30)
-
-                    // Form card
-                    VStack(spacing: 18) {
+                    AppSurfaceCard(tint: AppTheme.accent, padding: 24) {
+                        VStack(spacing: 18) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Email")
                                 .font(.caption.bold())
-                                .foregroundColor(.secondary)
+                                    .foregroundColor(.secondary)
                             HStack(spacing: 12) {
                                 Image(systemName: "envelope.fill")
                                     .foregroundColor(AppTheme.accent)
-                                    .frame(width: 20)
+                                .frame(width: 20)
                                 TextField("name@guard.com or name@warden.com", text: $email)
                                     .textInputAutocapitalization(.never)
                                     .keyboardType(.emailAddress)
@@ -117,14 +107,7 @@ struct SignUpView: View {
                         .cornerRadius(10)
 
                         if let errorMessage {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.footnote)
-                                Text(errorMessage)
-                                    .font(.footnote)
-                            }
-                            .foregroundColor(AppTheme.danger)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                                AppMessageBanner(text: errorMessage, tint: AppTheme.danger)
                         }
 
                         Button {
@@ -139,12 +122,12 @@ struct SignUpView: View {
                             }
                         } label: {
                             Text("Create Account")
-                                .font(.headline)
+                                .font(.headline.bold())
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                                 .background(AppTheme.accentGradient)
-                                .cornerRadius(12)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                         .disabled(!canSubmit)
                         .opacity(canSubmit ? 1 : 0.5)
@@ -158,14 +141,8 @@ struct SignUpView: View {
                         }
                         .padding(.top, 4)
                     }
-                    .padding(24)
-                    .background(Color(UIColor.systemBackground))
-                    .cornerRadius(24)
-                    .shadow(color: .black.opacity(0.12), radius: 20, y: 10)
-                    .padding(.horizontal, 20)
-
-                    Spacer(minLength: 40)
                 }
+                .padding(20)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

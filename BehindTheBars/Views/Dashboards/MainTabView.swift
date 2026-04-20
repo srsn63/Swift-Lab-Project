@@ -19,35 +19,57 @@ struct MainTabView: View {
             ProfileView()
                 .tabItem { Label("Profile", systemImage: "person.circle.fill") }
 
-            VStack(spacing: 20) {
-                Spacer()
-                ZStack {
-                    Circle()
-                        .fill(AppTheme.danger.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 32))
-                        .foregroundColor(AppTheme.danger)
+            ZStack {
+                AppScreenBackground()
+
+                VStack(spacing: 24) {
+                    AppHeroHeader(
+                        title: "Secure Exit",
+                        subtitle: "Leave the system cleanly when your shift or task is complete.",
+                        icon: "rectangle.portrait.and.arrow.right",
+                        tint: AppTheme.danger,
+                        badgeText: "Protected"
+                    )
+
+                    AppSurfaceCard(tint: AppTheme.danger) {
+                        VStack(spacing: 18) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.danger.opacity(0.12))
+                                    .frame(width: 78, height: 78)
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 30, weight: .semibold))
+                                    .foregroundStyle(AppTheme.danger)
+                            }
+
+                            VStack(spacing: 6) {
+                                Text("Ready to sign out?")
+                                    .font(.title3.bold())
+                                    .foregroundStyle(AppTheme.ink)
+                                Text("You will be returned to the login screen and protected actions will stop.")
+                                    .font(.subheadline)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundStyle(AppTheme.inkMuted)
+                            }
+
+                            Button {
+                                authVM.signOut()
+                            } label: {
+                                Text("Sign Out")
+                                    .font(.headline.bold())
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 15)
+                                    .background(AppTheme.danger)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                Text("Sign Out")
-                    .font(.title3.bold())
-                Text("You will be returned to the login screen")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                Button {
-                    authVM.signOut()
-                } label: {
-                    Text("Sign Out")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(width: 200)
-                        .padding(.vertical, 14)
-                        .background(AppTheme.danger)
-                        .cornerRadius(12)
-                }
-                .padding(.top, 8)
-                Spacer()
+                .padding(20)
             }
             .tabItem { Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right") }
         }

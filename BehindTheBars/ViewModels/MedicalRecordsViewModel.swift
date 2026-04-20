@@ -34,6 +34,33 @@ final class MedicalRecordsViewModel: ObservableObject {
 
     deinit { listener?.remove() }
 
+    func inmateSelectionMessage(for user: User) -> String? {
+        guard user.role == "guard" else { return nil }
+
+        guard let blockId = user.assignedBlockId, !blockId.isEmpty else {
+            return "You need a block assignment before creating a medical record."
+        }
+
+        guard availableInmates.isEmpty else { return nil }
+        return "No inmates are available in \(blockName(for: blockId))."
+    }
+
+    func doctorSelectionMessage(for user: User) -> String? {
+        guard user.role == "guard" else { return nil }
+
+        guard user.assignedBlockId?.isEmpty == false else {
+            return "You need a block assignment before selecting a doctor."
+        }
+
+        guard availableDoctors.isEmpty else { return nil }
+        return "No active doctors are available in the system."
+    }
+
+    func doctorLabel(for doctor: Staff) -> String {
+        let blockLabel = blockName(for: doctor.assignedBlockId)
+        return doctor.assignedBlockId.isEmpty ? "\(doctor.fullName) - Unassigned" : "\(doctor.fullName) - \(blockLabel)"
+    }
+
     func startListener(for user: User) {
         listener?.remove()
         errorMessage = nil
@@ -85,6 +112,8 @@ final class MedicalRecordsViewModel: ObservableObject {
     }
 
     func loadEditorData(for user: User) async {
+        errorMessage = nil
+
         guard user.role == "guard" else {
             availableInmates = []
             availableDoctors = []
@@ -104,7 +133,6 @@ final class MedicalRecordsViewModel: ObservableObject {
                 .getDocuments()
             let doctorSnapshot = try await FirebaseManager.shared.staffRef
                 .whereField("staffType", isEqualTo: StaffType.doctor.rawValue)
-                .whereField("assignedBlockId", isEqualTo: blockId)
                 .getDocuments()
 
             let inmates = inmateSnapshot.documents.compactMap { try? $0.data(as: Inmate.self) }
@@ -113,7 +141,12 @@ final class MedicalRecordsViewModel: ObservableObject {
             self.availableInmates = inmates.sorted { $0.fullName < $1.fullName }
             self.availableDoctors = doctors
                 .filter(\.isActive)
-                .sorted { $0.fullName < $1.fullName }
+                .sorted { lhs, rhs in
+                    if lhs.fullName == rhs.fullName {
+                        return lhs.assignedBlockId < rhs.assignedBlockId
+                    }
+                    return lhs.fullName < rhs.fullName
+                }
         } catch {
             self.errorMessage = error.localizedDescription
         }

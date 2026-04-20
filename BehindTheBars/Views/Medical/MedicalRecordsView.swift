@@ -49,70 +49,128 @@ struct MedicalRecordsView: View {
         }
     }
 
+    private var heroSubtitle: String {
+        switch accessMode {
+        case .guardManage:
+            return "Track inmate treatment, assign any active prison doctor, and keep records current."
+        case .wardenReadOnly:
+            return "Review block-level health updates and monitor medical status across the prison."
+        }
+    }
+
+    private var emptyStateTitle: String {
+        if !searchText.isEmpty {
+            return "No matching records"
+        }
+
+        switch accessMode {
+        case .guardManage:
+            return canManageRecords ? "No medical records yet" : "Block assignment required"
+        case .wardenReadOnly:
+            return "No medical updates yet"
+        }
+    }
+
+    private var emptyStateSubtitle: String {
+        if !searchText.isEmpty {
+            return "Try searching by inmate name, doctor, block, or medical status."
+        }
+
+        switch accessMode {
+        case .guardManage:
+            return canManageRecords
+                ? "Medical records created by guards in this block will appear here."
+                : "Assign a block to this guard before managing medical records."
+        case .wardenReadOnly:
+            return "Medical records will appear here once guards begin submitting updates."
+        }
+    }
+
+    private var sectionHeaderTitle: String {
+        accessMode == .guardManage ? "Record Feed" : "Medical Feed"
+    }
+
     var body: some View {
         List {
+            Section {
+                AppHeroHeader(
+                    title: accessMode.title,
+                    subtitle: heroSubtitle,
+                    icon: accessMode == .guardManage ? "cross.case.fill" : "waveform.path.ecg",
+                    tint: .red,
+                    badgeText: accessMode == .guardManage ? "Guard" : "Warden"
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
             if let err = vm.errorMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(AppTheme.danger)
-                    Text(err)
-                        .foregroundStyle(AppTheme.danger)
-                        .font(.footnote)
+                Section {
+                    AppMessageBanner(text: err, tint: AppTheme.danger)
                 }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
             if filteredRecords.isEmpty && vm.errorMessage == nil {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 10) {
-                        Image(systemName: accessMode == .guardManage ? "cross.case.circle" : "waveform.path.ecg")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text(searchText.isEmpty ? emptyStateText : "No results for \"\(searchText)\"")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.vertical, 40)
-                    Spacer()
+                Section {
+                    AppEmptyStateCard(
+                        title: emptyStateTitle,
+                        subtitle: emptyStateSubtitle,
+                        icon: accessMode == .guardManage ? "cross.case.circle" : "waveform.path.ecg",
+                        tint: .red
+                    )
                 }
                 .listRowBackground(Color.clear)
-            }
-
-            ForEach(filteredRecords) { record in
-                NavigationLink {
-                    MedicalRecordDetailView(
-                        record: record,
-                        accessMode: accessMode,
-                        blockName: vm.blockName(for: record.blockId)
-                    )
-                } label: {
-                    MedicalRecordRowView(
-                        record: record,
-                        blockName: vm.blockName(for: record.blockId),
-                        showsBlock: accessMode == .wardenReadOnly
-                    )
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if canManageRecords {
-                        Button {
-                            editingRecord = record
+                .listRowSeparator(.hidden)
+            } else if !filteredRecords.isEmpty {
+                Section {
+                    ForEach(filteredRecords) { record in
+                        NavigationLink {
+                            MedicalRecordDetailView(
+                                record: record,
+                                accessMode: accessMode,
+                                blockName: vm.blockName(for: record.blockId)
+                            )
                         } label: {
-                            Text("Edit")
+                            MedicalRecordRowView(
+                                record: record,
+                                blockName: vm.blockName(for: record.blockId),
+                                showsBlock: accessMode == .wardenReadOnly
+                            )
                         }
-                        .tint(AppTheme.accent)
+                        .buttonStyle(.plain)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if canManageRecords {
+                                Button {
+                                    editingRecord = record
+                                } label: {
+                                    Text("Edit")
+                                }
+                                .tint(AppTheme.accent)
 
-                        Button(role: .destructive) {
-                            deletingRecord = record
-                        } label: {
-                            Text("Delete")
+                                Button(role: .destructive) {
+                                    deletingRecord = record
+                                } label: {
+                                    Text("Delete")
+                                }
+                            }
                         }
                     }
+                } header: {
+                    Label(sectionHeaderTitle, systemImage: "list.bullet.rectangle.portrait")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
         .navigationTitle(accessMode.title)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: searchPrompt)
         .toolbar {
             if accessMode == .guardManage {
@@ -120,9 +178,11 @@ struct MedicalRecordsView: View {
                     Button {
                         showingAdd = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(AppTheme.accent)
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Circle().fill(AppTheme.accentGradient))
                     }
                     .disabled(!canManageRecords)
                 }
@@ -176,15 +236,6 @@ struct MedicalRecordsView: View {
         }
     }
 
-    private var emptyStateText: String {
-        switch accessMode {
-        case .guardManage:
-            return canManageRecords ? "No medical records created yet" : "Assign a block to this guard before managing medical records"
-        case .wardenReadOnly:
-            return "No medical status updates available"
-        }
-    }
-
     private var searchPrompt: String {
         switch accessMode {
         case .guardManage:
@@ -214,50 +265,54 @@ private struct MedicalRecordRowView: View {
     let showsBlock: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(record.medicalStatus.color.opacity(0.12))
-                    .frame(width: 44, height: 44)
-                Image(systemName: record.medicalStatus.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(record.medicalStatus.color)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.inmateName)
-                    .font(.subheadline.bold())
-
-                HStack(spacing: 6) {
-                    Label(record.doctorName, systemImage: "stethoscope")
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    if showsBlock {
-                        Text("•")
-                        Label(blockName, systemImage: "building.2")
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
+        AppSurfaceCard(tint: record.medicalStatus.color, padding: 16) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(record.medicalStatus.color.opacity(0.12))
+                        .frame(width: 46, height: 46)
+                    Image(systemName: record.medicalStatus.icon)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(record.medicalStatus.color)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(record.inmateName)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(AppTheme.ink)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                StatusBadge(
-                    text: record.medicalStatus.displayName,
-                    color: record.medicalStatus.color,
-                    small: true
-                )
-                Text(record.statusUpdatedAt.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    Text(record.conditionSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.inkMuted)
+                        .lineLimit(2)
+
+                    HStack(spacing: 10) {
+                        Label(record.doctorName, systemImage: "stethoscope")
+                            .lineLimit(1)
+
+                        if showsBlock {
+                            Label(blockName, systemImage: "building.2")
+                                .lineLimit(1)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.inkMuted)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 8) {
+                    StatusBadge(
+                        text: record.medicalStatus.displayName,
+                        color: record.medicalStatus.color,
+                        small: true
+                    )
+                    Text(record.statusUpdatedAt.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.inkMuted)
+                }
             }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -267,71 +322,77 @@ private struct MedicalRecordDetailView: View {
     let blockName: String
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(record.inmateName)
-                                .font(.title3.bold())
-                            Text(record.doctorName)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+        ZStack {
+            AppScreenBackground()
+
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppHeroHeader(
+                        title: record.inmateName,
+                        subtitle: "Assigned doctor: \(record.doctorName)",
+                        icon: record.medicalStatus.icon,
+                        tint: record.medicalStatus.color,
+                        badgeText: record.medicalStatus.displayName
+                    )
+
+                    AppSurfaceCard(tint: record.medicalStatus.color) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Timeline", systemImage: "calendar.badge.clock")
+                                .font(.caption.bold())
+                                .foregroundColor(record.medicalStatus.color)
+
+                            InfoRow(label: "Status Date", value: record.statusUpdatedAt.formatted(date: .long, time: .omitted))
+                            InfoRow(label: "Created", value: record.createdAt.formatted(date: .long, time: .shortened))
+                            InfoRow(label: "Updated", value: record.updatedAt.formatted(date: .long, time: .shortened))
+                            InfoRow(label: "Block", value: blockName)
                         }
-                        Spacer()
-                        StatusBadge(text: record.medicalStatus.displayName, color: record.medicalStatus.color)
                     }
 
-                    Divider()
+                    AppSurfaceCard(tint: AppTheme.accent) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Assignment", systemImage: "person.2.fill")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.accent)
 
-                    InfoRow(label: "Status Date", value: record.statusUpdatedAt.formatted(date: .long, time: .omitted))
-                    InfoRow(label: "Created", value: record.createdAt.formatted(date: .long, time: .shortened))
-                    InfoRow(label: "Updated", value: record.updatedAt.formatted(date: .long, time: .shortened))
-                    InfoRow(label: "Block", value: blockName)
-                }
-                .padding(16)
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-                .cornerRadius(16)
+                            InfoRow(label: "Inmate", value: record.inmateName)
+                            InfoRow(label: "Doctor", value: record.doctorName)
+                            InfoRow(label: "Status", value: record.medicalStatus.displayName)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Assignment")
-                        .font(.headline)
-                    InfoRow(label: "Inmate", value: record.inmateName)
-                    InfoRow(label: "Doctor", value: record.doctorName)
-                    InfoRow(label: "Status", value: record.medicalStatus.displayName)
+                            if accessMode == .guardManage {
+                                InfoRow(label: "Created By", value: record.createdByName)
+                            }
+                        }
+                    }
 
                     if accessMode == .guardManage {
-                        InfoRow(label: "Created By", value: record.createdByName)
+                        AppSurfaceCard(tint: .red) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Label("Medical Summary", systemImage: "cross.case.fill")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.red)
+
+                                Text(record.conditionSummary)
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.ink)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Divider()
+
+                                Label("Treatment Notes", systemImage: "note.text")
+                                    .font(.caption.bold())
+                                    .foregroundColor(AppTheme.accent)
+
+                                Text(record.treatmentNotes.isEmpty ? "No treatment notes added." : record.treatmentNotes)
+                                    .font(.body)
+                                    .foregroundStyle(record.treatmentNotes.isEmpty ? AppTheme.inkMuted : AppTheme.ink)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
                     }
                 }
-                .padding(16)
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-                .cornerRadius(16)
-
-                if accessMode == .guardManage {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Medical Summary")
-                            .font(.headline)
-                        Text(record.conditionSummary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .foregroundStyle(.primary)
-
-                        Divider()
-
-                        Text("Treatment Notes")
-                            .font(.headline)
-                        Text(record.treatmentNotes.isEmpty ? "No treatment notes added." : record.treatmentNotes)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .foregroundStyle(record.treatmentNotes.isEmpty ? .secondary : .primary)
-                    }
-                    .padding(16)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
-                }
+                .padding(20)
             }
-            .padding(16)
         }
-        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(accessMode == .guardManage ? "Record Detail" : "Status Detail")
         .navigationBarTitleDisplayMode(.inline)
     }

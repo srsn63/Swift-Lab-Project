@@ -8,53 +8,62 @@ struct GuardDashboardView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                dutyStatusSection
+                VStack(spacing: 18) {
+                    AppHeroHeader(
+                        title: "Guard Dashboard",
+                        subtitle: "Track your duty status and respond quickly to inmate, incident, and medical tasks.",
+                        icon: "shield.fill",
+                        tint: AppTheme.accent,
+                        badgeText: "Guard"
+                    )
 
-                LazyVGrid(columns: columns, spacing: 16) {
-                    NavigationLink { InmateListView() } label: {
-                        DashboardCard(
-                            title: "Inmates",
-                            subtitle: "View assigned inmates",
-                            icon: "person.crop.rectangle.stack.fill",
-                            color: AppTheme.accent
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    dutyStatusSection
 
-                    NavigationLink { ReportIncidentView() } label: {
-                        DashboardCard(
-                            title: "Report",
-                            subtitle: "File a new incident",
-                            icon: "exclamationmark.bubble.fill",
-                            color: AppTheme.danger
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        NavigationLink { InmateListView() } label: {
+                            DashboardCard(
+                                title: "Inmates",
+                                subtitle: "View assigned inmates",
+                                icon: "person.crop.rectangle.stack.fill",
+                                color: AppTheme.accent
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                    NavigationLink { IncidentListView() } label: {
-                        DashboardCard(
-                            title: "Incidents",
-                            subtitle: "View all reports",
-                            icon: "list.clipboard.fill",
-                            color: AppTheme.warning
-                        )
-                    }
-                    .buttonStyle(.plain)
+                        NavigationLink { ReportIncidentView() } label: {
+                            DashboardCard(
+                                title: "Report",
+                                subtitle: "File a new incident",
+                                icon: "exclamationmark.bubble.fill",
+                                color: AppTheme.danger
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                    NavigationLink { MedicalRecordsView(accessMode: .guardManage) } label: {
-                        DashboardCard(
-                            title: "Medical",
-                            subtitle: "Assign doctors and track treatment",
-                            icon: "cross.case.fill",
-                            color: .red
-                        )
+                        NavigationLink { IncidentListView() } label: {
+                            DashboardCard(
+                                title: "Incidents",
+                                subtitle: "View all reports",
+                                icon: "list.clipboard.fill",
+                                color: AppTheme.warning
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink { MedicalRecordsView(accessMode: .guardManage) } label: {
+                            DashboardCard(
+                                title: "Medical",
+                                subtitle: "Assign doctors and track treatment",
+                                icon: "cross.case.fill",
+                                color: .red
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(20)
-                .padding(.top, authVM.currentUser?.dutyAnchorDate == nil ? 0 : 4)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(AppScreenBackground())
             .navigationTitle("Guard")
         }
     }
@@ -101,32 +110,21 @@ struct GuardDashboardView: View {
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill((dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning).opacity(0.12))
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(AppTheme.tintedSurface(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke((dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning).opacity(0.28), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke((dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning).opacity(0.22), lineWidth: 1)
                     )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
+                    .shadow(color: AppTheme.shadow, radius: 18, y: 10)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Duty schedule not assigned")
-                        .font(.headline.bold())
-                    Text("Ask an admin or warden to set your first duty start date and time to enable the live duty countdown.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color(UIColor.secondarySystemGroupedBackground))
+                AppMessageBanner(
+                    text: "Duty schedule not assigned. Ask an admin or warden to set your first duty start date and time.",
+                    tint: AppTheme.warning,
+                    icon: "clock.badge.exclamationmark"
                 )
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
             }
         }
     }

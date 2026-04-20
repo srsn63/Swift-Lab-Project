@@ -23,7 +23,17 @@ struct StaffEditorView: View {
 
     var body: some View {
         Form {
-            // Basic Info
+            Section {
+                AppHeroHeader(
+                    title: isEditing ? "Edit Staff Member" : "Add Staff Member",
+                    subtitle: "Create clean staff profiles with duty anchors, shift grouping, and block assignments.",
+                    icon: staffType.icon,
+                    tint: staffType.color,
+                    badgeText: staffType.displayName
+                )
+            }
+            .listRowBackground(Color.clear)
+
             Section {
                 HStack(spacing: 12) {
                     Image(systemName: "person.fill")
@@ -31,6 +41,7 @@ struct StaffEditorView: View {
                         .frame(width: 20)
                     TextField("Full name", text: $fullName)
                 }
+
                 HStack(spacing: 12) {
                     Image(systemName: "phone.fill")
                         .foregroundColor(AppTheme.accent)
@@ -39,15 +50,10 @@ struct StaffEditorView: View {
                         .keyboardType(.phonePad)
                 }
 
-                // Staff Type picker
                 Picker(selection: $staffType) {
                     ForEach(StaffType.allCases) { type in
-                        HStack {
-                            Image(systemName: type.icon)
-                                .foregroundColor(type.color)
-                            Text(type.displayName)
-                        }
-                        .tag(type)
+                        Label(type.displayName, systemImage: type.icon)
+                            .tag(type)
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -71,10 +77,9 @@ struct StaffEditorView: View {
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
-            // Assignment
             Section {
-                // Block picker
                 Menu {
                     Button("Unassigned") { assignedBlockId = "" }
                     ForEach(vm.blocks) { block in
@@ -88,10 +93,10 @@ struct StaffEditorView: View {
                         Text("Assigned Block")
                         Spacer()
                         Text(currentBlockName)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.inkMuted)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.inkMuted)
                     }
                 }
 
@@ -111,19 +116,21 @@ struct StaffEditorView: View {
                     Text("Shift Group")
                     Spacer()
                     Text(derivedShift.displayName)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.inkMuted)
                 }
 
-                Text("This start time drives the repeating 8-hour duty and 8-hour rest cycle in real time.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                AppMessageBanner(
+                    text: "This duty start drives the repeating 8-hour work and 8-hour rest cycle in real time.",
+                    tint: AppTheme.accent,
+                    icon: "clock.badge.checkmark"
+                )
             } header: {
                 Label("Assignment", systemImage: "mappin.and.ellipse")
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
-            // Status
             Section {
                 Toggle(isOn: $isActive) {
                     HStack(spacing: 12) {
@@ -138,31 +145,29 @@ struct StaffEditorView: View {
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
-            // Notes
             Section {
                 TextEditor(text: $notes)
-                    .frame(minHeight: 80)
+                    .frame(minHeight: 100)
             } header: {
                 Label("Notes", systemImage: "note.text")
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
             if let err = errorMessage {
                 Section {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppTheme.danger)
-                        Text(err)
-                            .foregroundStyle(AppTheme.danger)
-                            .font(.footnote)
-                    }
+                    AppMessageBanner(text: err, tint: AppTheme.danger)
                 }
+                .listRowBackground(Color.clear)
             }
         }
         .navigationTitle(isEditing ? "Edit Staff" : "Add Staff")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { dismiss() }

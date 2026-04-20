@@ -150,6 +150,73 @@ struct Staff: Identifiable, Codable {
     var resolvedShift: String {
         ShiftDutySchedule.normalizedShiftName(shift, anchorDate: dutyAnchorDate, fallback: "morning")
     }
+
+    enum CodingKeys: String, CodingKey {
+        case fullName
+        case staffType
+        case phoneNumber
+        case assignedBlockId
+        case shift
+        case hireDate
+        case isActive
+        case notes
+        case createdBy
+        case createdAt
+        case updatedAt
+        case dutyStartAt
+        case isDeleted
+    }
+
+    init(
+        id: String? = nil,
+        fullName: String,
+        staffType: String,
+        phoneNumber: String,
+        assignedBlockId: String,
+        shift: String,
+        hireDate: Date,
+        isActive: Bool,
+        notes: String,
+        createdBy: String,
+        createdAt: Date,
+        updatedAt: Date,
+        dutyStartAt: Date? = nil,
+        isDeleted: Bool? = nil
+    ) {
+        self.id = id
+        self.fullName = fullName
+        self.staffType = staffType
+        self.phoneNumber = phoneNumber
+        self.assignedBlockId = assignedBlockId
+        self.shift = shift
+        self.hireDate = hireDate
+        self.isActive = isActive
+        self.notes = notes
+        self.createdBy = createdBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.dutyStartAt = dutyStartAt
+        self.isDeleted = isDeleted
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        _id = DocumentID(wrappedValue: nil)
+
+        fullName = try container.decodeIfPresent(String.self, forKey: .fullName) ?? ""
+        staffType = try container.decodeIfPresent(String.self, forKey: .staffType) ?? StaffType.other.rawValue
+        phoneNumber = try container.decodeIfPresent(String.self, forKey: .phoneNumber) ?? ""
+        assignedBlockId = try container.decodeIfPresent(String.self, forKey: .assignedBlockId) ?? ""
+        shift = try container.decodeIfPresent(String.self, forKey: .shift) ?? ShiftType.morning.rawValue
+        hireDate = try container.decodeIfPresent(Date.self, forKey: .hireDate) ?? Date()
+        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
+        notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        createdBy = try container.decodeIfPresent(String.self, forKey: .createdBy) ?? ""
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        dutyStartAt = try container.decodeIfPresent(Date.self, forKey: .dutyStartAt)
+        isDeleted = try container.decodeIfPresent(Bool.self, forKey: .isDeleted)
+    }
 }
 
 enum StaffType: String, CaseIterable, Identifiable {

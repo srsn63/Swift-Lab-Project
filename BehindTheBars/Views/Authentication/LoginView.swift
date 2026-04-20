@@ -31,160 +31,135 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppTheme.headerGradient.ignoresSafeArea()
+                AppScreenBackground()
 
                 ScrollView {
-                    VStack(spacing: 0) {
-                        // Branding
-                        VStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(.white.opacity(0.1))
-                                    .frame(width: 100, height: 100)
-                                Image(systemName: "building.columns.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(.white.opacity(0.9))
-                            }
+                    VStack(spacing: 18) {
+                        AppHeroHeader(
+                            title: "Behind The Bars",
+                            subtitle: "Secure prison management with fast access to operations, records, and staff workflows.",
+                            icon: "building.columns.fill",
+                            tint: AppTheme.accent,
+                            badgeText: "Secure"
+                        )
 
-                            Text("Behind The Bars")
-                                .font(.system(size: 30, weight: .bold))
-                                .foregroundColor(.white)
+                        AppSurfaceCard(tint: AppTheme.accent, padding: 24) {
+                            VStack(spacing: 20) {
+                                Text("Sign In")
+                                    .font(.title3.bold())
+                                    .foregroundStyle(AppTheme.ink)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Text("Prison Management System")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.65))
-                        }
-                        .padding(.top, 60)
-                        .padding(.bottom, 36)
-
-                        // Login card
-                        VStack(spacing: 20) {
-                            Text("Sign In")
-                                .font(.title3.bold())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            VStack(spacing: 14) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "envelope.fill")
-                                        .foregroundColor(AppTheme.accent)
-                                        .frame(width: 20)
-                                    TextField("Email", text: $email)
-                                        .loginEmailInputBehavior()
-                                }
-                                .padding(14)
-                                .background(Color.loginInputFill)
-                                .cornerRadius(12)
-
-                                HStack(spacing: 12) {
-                                    Image(systemName: "lock.fill")
-                                        .foregroundColor(AppTheme.accent)
-                                        .frame(width: 20)
-                                    SecureField("Password", text: $password)
-                                }
-                                .padding(14)
-                                .background(Color.loginInputFill)
-                                .cornerRadius(12)
-
-                                Toggle(isOn: $rememberCredentials) {
-                                    Text("Remember credentials on this device")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .toggleStyle(.switch)
-                                .tint(AppTheme.accent)
-                            }
-
-                            if let errorMessage {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.footnote)
-                                    Text(errorMessage)
-                                        .font(.footnote)
-                                }
-                                .foregroundColor(AppTheme.danger)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-
-                            Button {
-                                signInWithPassword()
-                            } label: {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(AppTheme.accentGradient)
-                                    if isLoading {
-                                        ProgressView()
-                                            .progressViewStyle(.circular)
-                                            .tint(.white)
-                                    } else {
-                                        Text("Sign In")
-                                            .font(.headline)
-                                            .foregroundColor(.white)
+                                VStack(spacing: 14) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "envelope.fill")
+                                            .foregroundColor(AppTheme.accent)
+                                            .frame(width: 20)
+                                        TextField("Email", text: $email)
+                                            .loginEmailInputBehavior()
                                     }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                            }
-                            .disabled(!canSignIn)
-                            .opacity(canSignIn ? 1 : 0.5)
+                                    .padding(14)
+                                    .background(Color.loginInputFill)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                            if hasSavedCredentials {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "lock.fill")
+                                            .foregroundColor(AppTheme.accent)
+                                            .frame(width: 20)
+                                        SecureField("Password", text: $password)
+                                    }
+                                    .padding(14)
+                                    .background(Color.loginInputFill)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                                    Toggle(isOn: $rememberCredentials) {
+                                        Text("Remember credentials on this device")
+                                            .font(.footnote)
+                                            .foregroundStyle(AppTheme.inkMuted)
+                                    }
+                                    .toggleStyle(.switch)
+                                    .tint(AppTheme.accent)
+                                }
+
+                                if let errorMessage {
+                                    AppMessageBanner(text: errorMessage, tint: AppTheme.danger)
+                                }
+
                                 Button {
-                                    signInWithBiometrics()
+                                    signInWithPassword()
                                 } label: {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "touchid")
-                                        Text("Quick Sign In with \(biometricLabel)")
-                                            .fontWeight(.semibold)
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(AppTheme.accentGradient)
+                                        if isLoading {
+                                            ProgressView()
+                                                .progressViewStyle(.circular)
+                                                .tint(.white)
+                                        } else {
+                                            Text("Sign In")
+                                                .font(.headline.bold())
+                                                .foregroundColor(.white)
+                                        }
                                     }
-                                    .font(.subheadline)
-                                    .foregroundColor(AppTheme.accent)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(AppTheme.accent.opacity(0.08))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(AppTheme.accent.opacity(0.22), lineWidth: 1)
-                                    )
+                                    .frame(height: 56)
                                 }
-                                .disabled(!biometricAvailable || isLoading)
-                                .opacity((!biometricAvailable || isLoading) ? 0.55 : 1)
-                            }
+                                .disabled(!canSignIn)
+                                .opacity(canSignIn ? 1 : 0.55)
 
-                            HStack {
-                                Rectangle().frame(height: 1).foregroundColor(Color.loginSeparator)
-                                Text("OR")
-                                    .font(.caption2.bold())
-                                    .foregroundColor(.secondary)
-                                Rectangle().frame(height: 1).foregroundColor(Color.loginSeparator)
-                            }
-                            .padding(.vertical, 4)
+                                if hasSavedCredentials {
+                                    Button {
+                                        signInWithBiometrics()
+                                    } label: {
+                                        HStack(spacing: 10) {
+                                            Image(systemName: "touchid")
+                                            Text("Quick Sign In with \(biometricLabel)")
+                                                .fontWeight(.semibold)
+                                        }
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.accent)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(AppTheme.accent.opacity(0.08))
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(AppTheme.accent.opacity(0.18), lineWidth: 1)
+                                        )
+                                    }
+                                    .disabled(!biometricAvailable || isLoading)
+                                    .opacity((!biometricAvailable || isLoading) ? 0.55 : 1)
+                                }
 
-                            NavigationLink {
-                                SignUpView()
-                                    .environmentObject(authVM)
-                            } label: {
-                                Text("Create New Account")
-                                    .font(.headline)
-                                    .foregroundColor(AppTheme.accent)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(AppTheme.accent.opacity(0.08))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(AppTheme.accent.opacity(0.2), lineWidth: 1)
-                                    )
+                                HStack {
+                                    Rectangle().frame(height: 1).foregroundColor(Color.loginSeparator)
+                                    Text("OR")
+                                        .font(.caption2.bold())
+                                        .foregroundColor(AppTheme.inkMuted)
+                                    Rectangle().frame(height: 1).foregroundColor(Color.loginSeparator)
+                                }
+                                .padding(.vertical, 4)
+
+                                NavigationLink {
+                                    SignUpView()
+                                        .environmentObject(authVM)
+                                } label: {
+                                    Text("Create New Account")
+                                        .font(.headline)
+                                        .foregroundColor(AppTheme.accent)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                        .background(AppTheme.accent.opacity(0.08))
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(AppTheme.accent.opacity(0.18), lineWidth: 1)
+                                        )
+                                }
                             }
                         }
-                        .padding(24)
-                        .background(Color.loginCardBackground)
-                        .cornerRadius(24)
-                        .shadow(color: .black.opacity(0.12), radius: 20, y: 10)
-                        .padding(.horizontal, 20)
-
-                        Spacer(minLength: 40)
                     }
+                    .padding(20)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)

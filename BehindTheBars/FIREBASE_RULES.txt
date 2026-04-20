@@ -114,15 +114,11 @@ service cloud.firestore {
     match /staff/{staffId} {
 
       // Admin + Warden can view all staff
-      // Guard can view only doctors in their assigned block for medical record assignment
+      // Guard can view doctors prison-wide for medical record assignment
       allow read: if isApproved() && (
         isAdmin()
         || isWarden()
-        || (
-          guardHasBlock()
-          && resource.data.staffType == "doctor"
-          && resource.data.assignedBlockId == userDoc().assignedBlockId
-        )
+        || (isGuard() && resource.data.staffType == "doctor")
       );
 
       // Admin + Warden: full create, update, delete

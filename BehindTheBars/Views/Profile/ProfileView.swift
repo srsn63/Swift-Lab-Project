@@ -23,11 +23,9 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Avatar header
                 Section {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 12) {
+                    AppSurfaceCard(tint: roleColor) {
+                        HStack(spacing: 16) {
                             ZStack {
                                 Circle()
                                     .fill(AppTheme.accentGradient)
@@ -37,17 +35,19 @@ struct ProfileView: View {
                                     .foregroundColor(.white)
                             }
 
-                            Text(authVM.currentUser?.email ?? "")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            StatusBadge(
-                                text: authVM.currentUser?.role.uppercased() ?? "",
-                                color: roleColor
-                            )
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(authVM.currentUser?.email ?? "")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(AppTheme.ink)
+                                Text("Profile and identity settings")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppTheme.inkMuted)
+                                StatusBadge(
+                                    text: authVM.currentUser?.role.uppercased() ?? "",
+                                    color: roleColor
+                                )
+                            }
                         }
-                        .padding(.vertical, 8)
-                        Spacer()
                     }
                 }
                 .listRowBackground(Color.clear)
@@ -57,13 +57,14 @@ struct ProfileView: View {
                         Image(systemName: "envelope.fill")
                             .foregroundColor(AppTheme.accent)
                             .frame(width: 20)
-                        Text(authVM.currentUser?.email ?? "—")
+                        Text(authVM.currentUser?.email ?? "-")
                     }
+
                     HStack(spacing: 12) {
                         Image(systemName: "shield.lefthalf.filled")
                             .foregroundColor(AppTheme.accent)
                             .frame(width: 20)
-                        Text(authVM.currentUser?.role.capitalized ?? "—")
+                        Text(authVM.currentUser?.role.capitalized ?? "-")
                     }
 
                     if authVM.currentUser?.role == "guard" {
@@ -71,7 +72,7 @@ struct ProfileView: View {
                             Image(systemName: "building.2")
                                 .foregroundColor(AppTheme.accent)
                                 .frame(width: 20)
-                            Text("Block: \(authVM.currentUser?.assignedBlockId ?? "—")")
+                            Text("Block: \(authVM.currentUser?.assignedBlockId ?? "-")")
                         }
                     }
 
@@ -79,13 +80,14 @@ struct ProfileView: View {
                         Image(systemName: "checkmark.seal")
                             .foregroundColor(AppTheme.success)
                             .frame(width: 20)
-                        Text("Status: \(authVM.currentUser?.status ?? "—")")
+                        Text("Status: \(authVM.currentUser?.status ?? "-")")
                     }
                 } header: {
                     Label("Account", systemImage: "person.circle")
                         .font(.caption.bold())
                         .foregroundColor(AppTheme.accent)
                 }
+                .listRowBackground(AppTheme.surfaceElevated)
 
                 Section {
                     HStack(spacing: 12) {
@@ -94,6 +96,7 @@ struct ProfileView: View {
                             .frame(width: 20)
                         TextField("Full name", text: $vm.fullName)
                     }
+
                     HStack(spacing: 12) {
                         Image(systemName: "number")
                             .foregroundColor(AppTheme.accent)
@@ -116,17 +119,13 @@ struct ProfileView: View {
                         .font(.caption.bold())
                         .foregroundColor(AppTheme.accent)
                 }
+                .listRowBackground(AppTheme.surfaceElevated)
 
                 if let err = vm.errorMessage {
                     Section {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(AppTheme.danger)
-                            Text(err)
-                                .foregroundStyle(AppTheme.danger)
-                                .font(.footnote)
-                        }
+                        AppMessageBanner(text: err, tint: AppTheme.danger)
                     }
+                    .listRowBackground(Color.clear)
                 }
 
                 Section {
@@ -150,15 +149,23 @@ struct ProfileView: View {
                                 .foregroundColor(.white)
                             Spacer()
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(AppTheme.accentGradient)
+                        )
                     }
-                    .listRowBackground(AppTheme.accent)
+                    .buttonStyle(.plain)
                 }
+                .listRowBackground(Color.clear)
             }
             .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .scrollContentBackground(.hidden)
+            .background(AppScreenBackground())
             .onAppear {
-                if let u = authVM.currentUser {
-                    vm.load(from: u)
+                if let user = authVM.currentUser {
+                    vm.load(from: user)
                 }
             }
         }
@@ -166,11 +173,6 @@ struct ProfileView: View {
     }
 
     private var roleColor: Color {
-        switch authVM.currentUser?.role {
-        case "admin": return .purple
-        case "warden": return AppTheme.accent
-        case "guard": return AppTheme.success
-        default: return .secondary
-        }
+        AppTheme.roleColor(authVM.currentUser?.role)
     }
 }

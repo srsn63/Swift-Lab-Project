@@ -3,20 +3,31 @@ import FirebaseFirestoreSwift
 
 struct GuardEditorView: View {
     let user: User
-    let onSave: (String, String, String, Date) async throws -> Void // fullName, badgeNumber, assignedBlockId, dutyStartAt
+    let onSave: (String, String, String, Date) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var fullName: String = ""
     @State private var badgeNumber: String = ""
-    @State private var assignedBlockId: String = ""   // MUST be blocks/{blockId} document id
+    @State private var assignedBlockId: String = ""
     @State private var dutyStartAt: Date = Date()
 
     @State private var blocks: [Block] = []
     @State private var errorMessage: String?
 
     var body: some View {
-        List {
+        Form {
+            Section {
+                AppHeroHeader(
+                    title: "Edit Guard",
+                    subtitle: "Update guard identity, block assignment, and the repeating 8-hour duty cycle anchor.",
+                    icon: "shield.fill",
+                    tint: AppTheme.accent,
+                    badgeText: user.role.capitalized
+                )
+            }
+            .listRowBackground(Color.clear)
+
             Section {
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
@@ -24,6 +35,7 @@ struct GuardEditorView: View {
                         .frame(width: 20)
                     Text(user.email)
                 }
+
                 HStack(spacing: 12) {
                     Image(systemName: "shield.lefthalf.filled")
                         .foregroundColor(AppTheme.accent)
@@ -35,6 +47,7 @@ struct GuardEditorView: View {
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
             Section {
                 HStack(spacing: 12) {
@@ -43,6 +56,7 @@ struct GuardEditorView: View {
                         .frame(width: 20)
                     TextField("Full name", text: $fullName)
                 }
+
                 HStack(spacing: 12) {
                     Image(systemName: "number")
                         .foregroundColor(AppTheme.accent)
@@ -52,8 +66,8 @@ struct GuardEditorView: View {
 
                 Menu {
                     Button("Unassigned") { assignedBlockId = "" }
-                    ForEach(blocks) { b in
-                        Button(b.name) { assignedBlockId = b.id ?? "" }
+                    ForEach(blocks) { block in
+                        Button(block.name) { assignedBlockId = block.id ?? "" }
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -63,10 +77,10 @@ struct GuardEditorView: View {
                         Text("Assigned Block")
                         Spacer()
                         Text(currentBlockName)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.inkMuted)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.inkMuted)
                     }
                 }
 
@@ -79,26 +93,25 @@ struct GuardEditorView: View {
                     }
                 }
 
-                Text("Each guard works 8 hours, rests 8 hours, then repeats from this start time.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                AppMessageBanner(
+                    text: "Each guard works 8 hours, rests 8 hours, and repeats from this first duty time.",
+                    tint: AppTheme.accent,
+                    icon: "clock.badge.checkmark"
+                )
 
                 if let err = errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppTheme.danger)
-                        Text(err)
-                            .foregroundStyle(AppTheme.danger)
-                            .font(.footnote)
-                    }
+                    AppMessageBanner(text: err, tint: AppTheme.danger)
                 }
             } header: {
                 Label("Details", systemImage: "pencil")
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
         .navigationTitle("Edit Guard")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -137,6 +150,7 @@ struct GuardEditorView: View {
 
     private func save() {
         errorMessage = nil
+
         Task {
             do {
                 try await onSave(

@@ -22,9 +22,20 @@ struct MedicalRecordEditorView: View {
     var body: some View {
         Form {
             Section {
+                AppHeroHeader(
+                    title: isEditing ? "Edit Medical Record" : "New Medical Record",
+                    subtitle: "Choose the inmate, assign any active doctor in the prison, and record the latest medical status.",
+                    icon: "cross.case.fill",
+                    tint: .red,
+                    badgeText: currentUser.role.capitalized
+                )
+            }
+            .listRowBackground(Color.clear)
+
+            Section {
                 Menu {
                     ForEach(vm.availableInmates) { inmate in
-                        Button("\(inmate.fullName) • Cell \(inmate.cellId)") {
+                        Button("\(inmate.fullName) - Cell \(inmate.cellId)") {
                             selectedInmateId = inmate.id ?? ""
                         }
                     }
@@ -36,15 +47,17 @@ struct MedicalRecordEditorView: View {
                     )
                 }
 
-                if vm.availableInmates.isEmpty {
-                    Text("No inmates are available in your assigned block.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                if let inmateMessage = vm.inmateSelectionMessage(for: currentUser) {
+                    AppMessageBanner(
+                        text: inmateMessage,
+                        tint: currentUser.assignedBlockId?.isEmpty == false ? AppTheme.warning : AppTheme.danger,
+                        icon: currentUser.assignedBlockId?.isEmpty == false ? "person.crop.rectangle.stack" : "building.2"
+                    )
                 }
 
                 Menu {
                     ForEach(vm.availableDoctors) { doctor in
-                        Button(doctor.fullName) {
+                        Button(vm.doctorLabel(for: doctor)) {
                             selectedDoctorId = doctor.id ?? ""
                         }
                     }
@@ -56,16 +69,19 @@ struct MedicalRecordEditorView: View {
                     )
                 }
 
-                if vm.availableDoctors.isEmpty {
-                    Text("No active doctors are assigned to this block.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                if let doctorMessage = vm.doctorSelectionMessage(for: currentUser) {
+                    AppMessageBanner(
+                        text: doctorMessage,
+                        tint: AppTheme.warning,
+                        icon: "stethoscope.circle"
+                    )
                 }
             } header: {
                 Label("Assignment", systemImage: "person.2.fill")
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
             Section {
                 TextField("Condition / complaint", text: $conditionSummary, axis: .vertical)
@@ -81,8 +97,9 @@ struct MedicalRecordEditorView: View {
             } header: {
                 Label("Medical Record", systemImage: "cross.case.fill")
                     .font(.caption.bold())
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(.red)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
 
             Section {
                 TextEditor(text: $treatmentNotes)
@@ -92,21 +109,26 @@ struct MedicalRecordEditorView: View {
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.accent)
             }
+            .listRowBackground(AppTheme.surfaceElevated)
+
+            if let vmError = vm.errorMessage {
+                Section {
+                    AppMessageBanner(text: vmError, tint: AppTheme.danger)
+                }
+                .listRowBackground(Color.clear)
+            }
 
             if let err = errorMessage {
                 Section {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppTheme.danger)
-                        Text(err)
-                            .foregroundStyle(AppTheme.danger)
-                            .font(.footnote)
-                    }
+                    AppMessageBanner(text: err, tint: AppTheme.danger)
                 }
+                .listRowBackground(Color.clear)
             }
         }
         .navigationTitle(isEditing ? "Edit Record" : "New Record")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { dismiss() }
@@ -122,6 +144,9 @@ struct MedicalRecordEditorView: View {
             loadExisting()
             if vm.availableInmates.isEmpty || vm.availableDoctors.isEmpty {
                 Task {
+                    if vm.blocks.isEmpty {
+                        await vm.loadBlocks()
+                    }
                     await vm.loadEditorData(for: currentUser)
                 }
             }
@@ -136,7 +161,7 @@ struct MedicalRecordEditorView: View {
 
     private var selectedInmateLabel: String {
         if let inmate = vm.availableInmates.first(where: { $0.id == selectedInmateId }) {
-            return "\(inmate.fullName) • Cell \(inmate.cellId)"
+            return "\(inmate.fullName) - Cell \(inmate.cellId)"
         }
 
         if let existing, selectedInmateId == existing.inmateId {
@@ -148,7 +173,7 @@ struct MedicalRecordEditorView: View {
 
     private var selectedDoctorLabel: String {
         if let doctor = vm.availableDoctors.first(where: { $0.id == selectedDoctorId }) {
-            return doctor.fullName
+            return vm.doctorLabel(for: doctor)
         }
 
         if let existing, selectedDoctorId == existing.doctorId {
@@ -164,13 +189,14 @@ struct MedicalRecordEditorView: View {
                 .foregroundColor(AppTheme.accent)
                 .frame(width: 20)
             Text(title)
+                .foregroundStyle(AppTheme.ink)
             Spacer()
             Text(value)
-                .foregroundStyle(value.hasPrefix("Select") ? .secondary : .primary)
+                .foregroundStyle(value.hasPrefix("Select") ? AppTheme.inkMuted : AppTheme.ink)
                 .multilineTextAlignment(.trailing)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.inkMuted)
         }
     }
 
@@ -189,12 +215,14 @@ struct MedicalRecordEditorView: View {
         errorMessage = nil
 
         guard let inmate = vm.availableInmates.first(where: { $0.id == selectedInmateId }) else {
-            errorMessage = "Select an inmate from your assigned block."
+            errorMessage = currentUser.assignedBlockId?.isEmpty == false
+                ? "Select an inmate from your assigned block."
+                : "You need a block assignment before creating a medical record."
             return
         }
 
         guard let doctor = vm.availableDoctors.first(where: { $0.id == selectedDoctorId }) else {
-            errorMessage = "Select an active doctor for this block."
+            errorMessage = "Select an active doctor from the available list."
             return
         }
 

@@ -25,7 +25,7 @@ final class StaffViewModel: ObservableObject {
             list = list.filter { $0.staffType == type.rawValue }
         }
         if let shift = selectedShift {
-            list = list.filter { $0.shift == shift.rawValue }
+            list = list.filter { $0.resolvedShift == shift.rawValue }
         }
         if let blockId = selectedBlockId {
             list = list.filter { $0.assignedBlockId == blockId }

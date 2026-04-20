@@ -58,122 +58,64 @@ struct GuardListView: View {
 
     var body: some View {
         List {
+            Section {
+                AppHeroHeader(
+                    title: "Guard Directory",
+                    subtitle: "Review block assignments, badge details, and live 8-hour duty countdowns for every guard.",
+                    icon: "shield.fill",
+                    tint: AppTheme.accent,
+                    badgeText: "\(vm.guards.count)"
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
             if let err = vm.errorMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(AppTheme.danger)
-                    Text(err)
-                        .foregroundStyle(AppTheme.danger)
-                        .font(.footnote)
+                Section {
+                    AppMessageBanner(text: err, tint: AppTheme.danger)
                 }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
             if vm.guards.isEmpty && vm.errorMessage == nil {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 10) {
-                        Image(systemName: "shield")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text("No guards found")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 40)
-                    Spacer()
+                Section {
+                    AppEmptyStateCard(
+                        title: "No guards found",
+                        subtitle: "Approved guard accounts will appear here with their block assignments and live duty status.",
+                        icon: "shield.lefthalf.filled",
+                        tint: AppTheme.accent
+                    )
                 }
                 .listRowBackground(Color.clear)
-            }
-
-            ForEach(vm.guards) { g in
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.accent.opacity(0.12))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "shield.fill")
-                                .foregroundColor(AppTheme.accent)
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(displayName(for: g))
-                                .font(.subheadline.bold())
-                            if shouldShowEmail(for: g) {
-                                Text(g.email)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Spacer()
-
-                        if let blockId = g.assignedBlockId, !blockId.isEmpty {
-                            StatusBadge(text: getBlockName(id: blockId), color: AppTheme.accent, small: true)
-                        } else {
-                            StatusBadge(text: "Unassigned", color: .secondary, small: true)
-                        }
+                .listRowSeparator(.hidden)
+            } else {
+                Section {
+                    ForEach(vm.guards) { guardUser in
+                        GuardRowCard(
+                            user: guardUser,
+                            blockName: getBlockName(id: guardUser.assignedBlockId ?? ""),
+                            displayName: displayName(for: guardUser),
+                            showsEmail: shouldShowEmail(for: guardUser),
+                            canDelete: authVM.currentUser?.role == "admin" || authVM.currentUser?.role == "warden",
+                            onEdit: { editing = guardUser },
+                            onDelete: { deleting = guardUser }
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
-
-                    if let badge = g.badgeNumber, !badge.isEmpty {
-                        Label(badge, systemImage: "number")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let dutyStartAt = g.dutyAnchorDate {
-                        TimelineView(.periodic(from: .now, by: 1)) { context in
-                            let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
-                            Label(
-                                dutyStatus.isOnDuty
-                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
-                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))",
-                                systemImage: dutyStatus.isOnDuty ? "checkmark.circle.fill" : "clock.badge"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
-                        }
-                    } else {
-                        Label("Duty schedule not assigned", systemImage: "clock.badge.exclamationmark")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 10) {
-                        Button {
-                            editing = g
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                                .font(.caption.bold())
-                                .foregroundColor(AppTheme.accent)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(AppTheme.accent.opacity(0.1))
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-
-                        if authVM.currentUser?.role == "admin" || authVM.currentUser?.role == "warden" {
-                            Button {
-                                deleting = g
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                                    .font(.caption.bold())
-                                    .foregroundColor(AppTheme.danger)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(AppTheme.danger.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                } header: {
+                    Label("Active Guards", systemImage: "person.2.fill")
+                        .font(.caption.bold())
+                        .foregroundColor(AppTheme.accent)
                 }
-                .padding(.vertical, 6)
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppScreenBackground())
         .navigationTitle("Guards")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await blocksVM.load()
         }
@@ -212,7 +154,7 @@ struct GuardListView: View {
     }
 
     private func getBlockName(id: String) -> String {
-        blocksVM.blocks.first(where: { $0.id == id })?.name ?? id
+        blocksVM.blocks.first(where: { $0.id == id })?.name ?? (id.isEmpty ? "Unassigned" : id)
     }
 
     private func displayName(for user: User) -> String {
@@ -223,5 +165,107 @@ struct GuardListView: View {
     private func shouldShowEmail(for user: User) -> Bool {
         let name = (user.fullName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return !name.isEmpty
+    }
+}
+
+private struct GuardRowCard: View {
+    let user: User
+    let blockName: String
+    let displayName: String
+    let showsEmail: Bool
+    let canDelete: Bool
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        AppSurfaceCard(tint: AppTheme.accent, padding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(AppTheme.accent.opacity(0.12))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "shield.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(displayName)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(AppTheme.ink)
+                        if showsEmail {
+                            Text(user.email)
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.inkMuted)
+                        }
+                    }
+
+                    Spacer()
+
+                    StatusBadge(
+                        text: (user.assignedBlockId ?? "").isEmpty ? "Unassigned" : blockName,
+                        color: (user.assignedBlockId ?? "").isEmpty ? .secondary : AppTheme.accent,
+                        small: true
+                    )
+                }
+
+                if let badge = user.badgeNumber, !badge.isEmpty {
+                    Label(badge, systemImage: "number")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.inkMuted)
+                }
+
+                if let dutyStartAt = user.dutyAnchorDate {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let dutyStatus = ShiftDutySchedule.status(for: dutyStartAt, now: context.date)
+                        HStack(spacing: 8) {
+                            Image(systemName: dutyStatus.isOnDuty ? "checkmark.circle.fill" : "clock.badge")
+                            Text(
+                                dutyStatus.isOnDuty
+                                    ? "On duty, ends in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
+                                    : "Off duty, starts in \(ShiftDutySchedule.countdownString(to: dutyStatus.nextChangeDate, now: context.date))"
+                            )
+                        }
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(dutyStatus.isOnDuty ? AppTheme.success : AppTheme.warning)
+                    }
+                } else {
+                    Label("Duty schedule not assigned", systemImage: "clock.badge.exclamationmark")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.inkMuted)
+                }
+
+                HStack(spacing: 10) {
+                    Button(action: onEdit) {
+                        Label("Edit", systemImage: "pencil")
+                            .font(.caption.bold())
+                            .foregroundColor(AppTheme.accent)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(AppTheme.accent.opacity(0.12))
+                            )
+                    }
+                    .buttonStyle(.plain)
+
+                    if canDelete {
+                        Button(action: onDelete) {
+                            Label("Delete", systemImage: "trash")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.danger)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(AppTheme.danger.opacity(0.12))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 }
