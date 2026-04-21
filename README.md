@@ -35,7 +35,7 @@ At a high level, the app is intended to:
 | Authentication | Firebase Authentication |
 | Database | Cloud Firestore |
 | Data Sync | Firestore snapshot listeners |
-| Local Device Security | Keychain + biometric authentication |
+| Local Device Security | Keychain |
 | Minimum iOS Target | iOS 16.4 |
 
 ## User Roles
@@ -56,8 +56,8 @@ Admin activities available in the project include:
 - monitoring reported incidents
 - managing prison staff records
 
-![Admin Dashboard Placeholder](docs/screenshots/admin-dashboard.png)
-*Placeholder: Admin dashboard overview*
+![Admin Dashboard](BehindTheBars/Screenshots/Admin-Dashboard.png)
+*Admin dashboard overview*
 
 ### Warden
 
@@ -72,8 +72,8 @@ Warden-facing capabilities include:
 - viewing medical status records in read-only mode
 - managing prison staff records
 
-![Warden Dashboard Placeholder](docs/screenshots/warden-dashboard.png)
-*Placeholder: Warden dashboard overview*
+![Warden Dashboard](BehindTheBars/Screenshots/Warden-Dashboard.png)
+*Warden dashboard overview*
 
 ### Guard
 
@@ -88,8 +88,8 @@ Guard-facing capabilities include:
 - checking current duty status with live countdown logic
 - maintaining personal profile details
 
-![Guard Dashboard Placeholder](docs/screenshots/guard-dashboard.png)
-*Placeholder: Guard dashboard overview*
+![Guard Dashboard](BehindTheBars/Screenshots/Guard-Dashboard.png)
+*Guard dashboard overview*
 
 ## Feature Modules and Workflows
 
@@ -100,7 +100,7 @@ This workflow is used by all users who need to enter the system securely.
 How the workflow works:
 
 1. A user opens the app and lands on the login screen.
-2. The user signs in with email and password, or uses saved credentials with biometric quick sign-in when available.
+2. The user signs in with email and password, or uses saved credentials.
 3. New users can create an account from the sign-up screen.
 4. After authentication, the app checks the user profile and access status.
 5. If the account is pending review, the system shows a pending approval screen instead of the main app.
@@ -121,14 +121,14 @@ What the user can do afterward:
 - access role-specific prison management tools
 - return to the profile page or sign out securely
 
-![Login Screen Placeholder](docs/screenshots/login.png)
-*Placeholder: Login screen*
+![Login Screen](BehindTheBars/Screenshots/Login-Screen.png)
+*Login screen*
 
-![Sign Up Screen Placeholder](docs/screenshots/signup.png)
-*Placeholder: Sign-up screen*
+![Sign Up Screen](BehindTheBars/Screenshots/Sign-Up-Screen.png)
+*Sign-up screen*
 
-![Pending Approval Placeholder](docs/screenshots/pending-approval.png)
-*Placeholder: Pending approval screen*
+![Pending Approval](BehindTheBars/Screenshots/Pending-Approval.png)
+*Pending approval screen*
 
 ### Admin Panel Workflow
 
@@ -168,14 +168,14 @@ What the admin can view afterward:
 - incident records
 - staff records
 
-![Admin Approvals Placeholder](docs/screenshots/admin-approvals.png)
-*Placeholder: Account approvals view*
+![Admin Approvals](BehindTheBars/Screenshots/Admin-Approvals.png)
+*Account approvals view*
 
-![Admin User Management Placeholder](docs/screenshots/admin-user-management.png)
-*Placeholder: User management view*
+![Admin User Management](BehindTheBars/Screenshots/Admin-User-Management.png)
+*User management view*
 
-![Block Management Placeholder](docs/screenshots/block-management.png)
-*Placeholder: Block and cell management view*
+![Block Management](BehindTheBars/Screenshots/Block-Management.png)
+*Block and cell management view*
 
 ### Inmate Management Workflow
 
@@ -217,14 +217,14 @@ What the user can view afterward:
 - block and cell placement
 - sentence timeline and release status
 
-![Inmate List Placeholder](docs/screenshots/inmate-list.png)
-*Placeholder: Inmate list view*
+![Inmate List](BehindTheBars/Screenshots/Inmate-List.png)
+*Inmate list view*
 
-![Inmate Admission Placeholder](docs/screenshots/inmate-admission.png)
-*Placeholder: Inmate admission screen*
+![Inmate Admission](BehindTheBars/Screenshots/Inmate-Admission.png)
+*Inmate admission screen*
 
-![Inmate Detail Placeholder](docs/screenshots/inmate-detail.png)
-*Placeholder: Inmate detail view*
+![Inmate Detail](BehindTheBars/Screenshots/Inmate-Detail.png)
+*Inmate detail view*
 
 ### Guard Management and Scheduling Workflow
 
@@ -260,11 +260,8 @@ What the user can view afterward:
 - assignment information by guard
 - grouped guard scheduling information through dedicated schedule-related views in the project
 
-![Guard List Placeholder](docs/screenshots/guard-list.png)
-*Placeholder: Guard list view*
-
-![Guard Schedule Placeholder](docs/screenshots/guard-schedule.png)
-*Placeholder: Guard shift schedule view*
+![Guard List](BehindTheBars/Screenshots/Guard-List.png)
+*Guard list view*
 
 ### Incident Reporting and Review Workflow
 
@@ -303,14 +300,14 @@ What the user can view afterward:
 - detailed incident records
 - reporter and inmate context for each incident
 
-![Incident Report Placeholder](docs/screenshots/incident-report.png)
-*Placeholder: Incident reporting form*
+![Incident Report](BehindTheBars/Screenshots/Incident-Report.png)
+*Incident reporting form*
 
-![Incident List Placeholder](docs/screenshots/incident-list.png)
-*Placeholder: Incident list view*
+![Incident List](BehindTheBars/Screenshots/Incident-List.png)
+*Incident list view*
 
-![Incident Detail Placeholder](docs/screenshots/incident-detail.png)
-*Placeholder: Incident detail view*
+![Incident Detail](BehindTheBars/Screenshots/Incident-Detail.png)
+*Incident detail view*
 
 ### Medical Records Workflow
 
@@ -351,11 +348,11 @@ What the user can view afterward:
 - inmate medical summary
 - date-based status information
 
-![Medical Records Placeholder](docs/screenshots/medical-records.png)
-*Placeholder: Medical records list view*
+![Medical Records](BehindTheBars/Screenshots/Medical-Records.png)
+*Medical records list view*
 
-![Medical Record Editor Placeholder](docs/screenshots/medical-record-editor.png)
-*Placeholder: Medical record editor view*
+![Medical Record Editor](BehindTheBars/Screenshots/Medical-Record-Editor.png)
+*Medical record editor view*
 
 ### Staff Management Workflow
 
@@ -399,14 +396,14 @@ What the user can view afterward:
 - live duty status indicators
 - activation status
 
-![Staff List Placeholder](docs/screenshots/staff-list.png)
-*Placeholder: Staff directory view*
+![Staff List](BehindTheBars/Screenshots/Staff-List.png)
+*Staff directory view*
 
-![Staff Editor Placeholder](docs/screenshots/staff-editor.png)
-*Placeholder: Staff editor view*
+![Staff Editor](BehindTheBars/Screenshots/Staff-Editor.png)
+*Staff editor view*
 
-![Staff Detail Placeholder](docs/screenshots/staff-detail.png)
-*Placeholder: Staff detail view*
+![Staff Detail](BehindTheBars/Screenshots/Staff-Detail.png)
+*Staff detail view*
 
 ### Profile Management Workflow
 
@@ -437,8 +434,8 @@ What the user can view afterward:
 - assigned block visibility for guards
 - updated personal details
 
-![Profile Placeholder](docs/screenshots/profile.png)
-*Placeholder: Profile view*
+![Profile](BehindTheBars/Screenshots/Profile.png)
+*Profile view*
 
 ## Project Structure
 
@@ -494,39 +491,3 @@ Important configuration notes:
 - Firestore should contain the collections required by the app workflow
 - authentication providers should be enabled according to the sign-in method you want to use
 - Firestore security rules should match your intended access control model
-
-## Screenshot Placeholders
-
-The README is already prepared for screenshots. Replace the placeholder image files later by adding your captured screenshots to:
-
-```text
-docs/screenshots/
-```
-
-Suggested filenames used in this README:
-
-- `login.png`
-- `signup.png`
-- `pending-approval.png`
-- `admin-dashboard.png`
-- `admin-approvals.png`
-- `admin-user-management.png`
-- `block-management.png`
-- `warden-dashboard.png`
-- `guard-dashboard.png`
-- `inmate-list.png`
-- `inmate-admission.png`
-- `inmate-detail.png`
-- `guard-list.png`
-- `guard-schedule.png`
-- `incident-report.png`
-- `incident-list.png`
-- `incident-detail.png`
-- `medical-records.png`
-- `medical-record-editor.png`
-- `staff-list.png`
-- `staff-editor.png`
-- `staff-detail.png`
-- `profile.png`
-
-Once you provide the actual screenshots, the README structure will not need to change. Only the image files need to be added or replaced.
